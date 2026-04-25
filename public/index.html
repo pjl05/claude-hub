@@ -25,12 +25,11 @@
         .cdot.on{background:var(--ok);box-shadow:0 0 8px rgba(52,211,153,.5)}
         .tbadge{padding:2px 8px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;font-size:.625rem}
         .sidebar{background:var(--bg-s);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
-        .new-btn{margin:14px;padding:11px;background:var(--ac);color:#000;border:none;border-radius:6px;font-family:var(--fd);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s;letter-spacing:.02em}
+        .new-btn{margin:14px;padding:11px;background:var(--ac);color:#000;border:none;border-radius:6px;font-family:var(--fd);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
         .new-btn:hover{background:#06b6d4;transform:translateY(-1px)}
         .task-list{flex:1;overflow-y:auto;padding:0 8px 16px}
         .task-item{padding:10px 12px;margin-bottom:2px;border-radius:6px;cursor:pointer;transition:all .12s;border-left:3px solid transparent}
-        .task-item:hover{background:var(--sf-h)}
-        .task-item.active{background:var(--sf-a);border-left-color:var(--ac)}
+        .task-item:hover{background:var(--sf-h)}.task-item.active{background:var(--sf-a);border-left-color:var(--ac)}
         .task-item-name{font-size:.8rem;font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .task-item-meta{display:flex;align-items:center;gap:6px;font-size:.625rem;color:var(--t3)}
         .tdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
@@ -38,16 +37,13 @@
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
         .main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);background-image:linear-gradient(rgba(34,211,238,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.015) 1px,transparent 1px);background-size:48px 48px}
         .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:10px}
-        .empty-icon{font-size:2.5rem;opacity:.2}
-        .empty-state h2{font-family:var(--fd);font-size:1rem;font-weight:600;color:var(--t2)}
-        .empty-state p{font-size:.8rem}
+        .empty-icon{font-size:2.5rem;opacity:.2}.empty-state h2{font-family:var(--fd);font-size:1rem;font-weight:600;color:var(--t2)}.empty-state p{font-size:.8rem}
         .task-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
         .tinfo{padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
         .tinfo-name{font-family:var(--fd);font-weight:600;font-size:.95rem}
         .badge{padding:2px 10px;border-radius:4px;font-size:.625rem;font-weight:500}
         .badge.running{background:rgba(34,211,238,.12);color:var(--ac)}.badge.completed{background:rgba(52,211,153,.12);color:var(--ok)}.badge.failed{background:rgba(248,113,113,.12);color:var(--err)}.badge.queued{background:rgba(71,85,105,.15);color:var(--t3)}.badge.cancelled{background:rgba(251,191,36,.12);color:var(--warn)}
-        .tinfo-phase{font-size:.6875rem;color:var(--t2)}
-        .tinfo-dur{font-size:.6875rem;color:var(--t3);margin-left:auto}
+        .tinfo-phase{font-size:.6875rem;color:var(--t2)}.tinfo-dur{font-size:.6875rem;color:var(--t3);margin-left:auto}
         .tinfo-acts{display:flex;gap:6px}
         .btn-i{padding:5px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t2);font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
         .btn-i:hover{background:var(--sf-h);color:var(--t)}.btn-i.danger:hover{background:rgba(248,113,113,.1);color:var(--err);border-color:var(--err)}
@@ -76,9 +72,40 @@
         .followup-send:hover{background:#06b6d4}.followup-send:disabled{opacity:.4;cursor:not-allowed}
         .followup-hist{margin-top:8px;max-height:100px;overflow-y:auto}
         .fu-item{padding:6px 10px;margin-bottom:4px;background:var(--bg);border-radius:4px;border-left:2px solid var(--ac-d);font-size:.75rem;color:var(--t2)}
+
+        /* Role Selector */
+        .role-bar{display:flex;gap:6px;padding:14px 22px 0;flex-wrap:wrap}
+        .role-chip{padding:6px 14px;background:var(--bg);border:2px solid var(--bd);border-radius:20px;cursor:pointer;font-size:.75rem;transition:all .15s;display:flex;align-items:center;gap:5px}
+        .role-chip:hover{border-color:var(--bd-l);background:var(--sf)}
+        .role-chip.active{border-color:var(--ac);background:var(--ac-g);color:var(--ac)}
+
+        /* Task Type Grid */
+        .tt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+        .tt-card{padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:8px;cursor:pointer;transition:all .15s;text-align:center}
+        .tt-card:hover{border-color:var(--bd-l);background:var(--sf)}
+        .tt-card.active{border-color:var(--ac);background:var(--ac-g)}
+        .tt-icon{font-size:1.4rem;margin-bottom:4px}.tt-name{font-size:.75rem;font-weight:500}.tt-desc{font-size:.6rem;color:var(--t3);margin-top:2px}
+
+        /* Parallel mode */
+        .parallel-section{margin-top:16px;padding:14px;background:var(--bg);border:1px solid var(--bd);border-radius:8px}
+        .parallel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+        .parallel-header span{font-size:.75rem;color:var(--t2)}
+        .parallel-add{padding:4px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--ac);font-size:.6875rem;cursor:pointer;font-family:var(--fm)}
+        .parallel-add:hover{background:var(--sf-h)}
+        .sub-task-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
+        .sub-task-row input{flex:1;padding:7px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t);font-family:var(--fm);font-size:.75rem;outline:none}
+        .sub-task-row input:focus{border-color:var(--ac)}
+        .sub-task-del{padding:4px 8px;background:none;border:1px solid var(--bd);border-radius:4px;color:var(--err);font-size:.75rem;cursor:pointer;font-family:var(--fm)}
+        .sub-task-del:hover{background:rgba(248,113,113,.1)}
+
+        /* Child tasks display */
+        .children-wrap{padding:8px 20px;border-bottom:1px solid var(--bd);background:rgba(10,10,20,.5)}
+        .child-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.75rem;color:var(--t2)}
+        .child-item .tdot{width:5px;height:5px}
+
         .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(3px)}
-        .modal{background:var(--sf);border:1px solid var(--bd);border-radius:10px;width:580px;max-width:92vw;max-height:90vh;overflow-y:auto;animation:mIn .2s ease}
-        .modal.wide{width:780px}
+        .modal{background:var(--sf);border:1px solid var(--bd);border-radius:10px;width:600px;max-width:92vw;max-height:90vh;overflow-y:auto;animation:mIn .2s ease}
+        .modal.wide{width:800px}
         @keyframes mIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
         .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--bd)}
         .modal-head h2{font-family:var(--fd);font-size:.95rem;font-weight:600}
@@ -88,19 +115,23 @@
         .fg{margin-bottom:14px}.fg label{display:block;margin-bottom:5px;font-size:.6875rem;color:var(--t2);font-weight:500}
         .fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--t);font-family:var(--fm);font-size:.8rem;outline:none;transition:border-color .2s}
         .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-g)}
-        .fg textarea{resize:vertical;min-height:140px;line-height:1.6}.fg select{cursor:pointer}
+        .fg textarea{resize:vertical;min-height:120px;line-height:1.6}
         .fbtns{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
         .btn-p{padding:9px 22px;background:var(--ac);color:#000;border:none;border-radius:5px;font-family:var(--fd);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
         .btn-p:hover{background:#06b6d4}
         .btn-s{padding:9px 22px;background:var(--sf-h);color:var(--t2);border:1px solid var(--bd);border-radius:5px;font-family:var(--fm);font-size:.8rem;cursor:pointer}
         .btn-s:hover{background:var(--sf-a);color:var(--t)}
-        .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-        .tpl-card{padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:8px;cursor:pointer;transition:all .15s;text-align:center}
-        .tpl-card:hover{border-color:var(--bd-l);background:var(--sf)}
-        .tpl-card.active{border-color:var(--ac);background:var(--ac-g)}
-        .tpl-icon{font-size:1.4rem;margin-bottom:4px}.tpl-name{font-size:.75rem;font-weight:500}.tpl-desc{font-size:.6rem;color:var(--t3);margin-top:2px}
-        .persona-area{width:100%;min-height:350px;padding:14px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--t);font-family:var(--fm);font-size:.8rem;line-height:1.7;resize:vertical;outline:none}
-        .persona-area:focus{border-color:var(--ac)}
+
+        /* Role Editor */
+        .role-editor{padding:22px}
+        .role-editor .fg textarea{min-height:80px}
+        .task-type-list{margin-top:10px}
+        .tt-edit-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+        .tt-edit-row input,.tt-edit-row textarea{padding:7px 10px;background:var(--bg);border:1px solid var(--bd);border-radius:4px;color:var(--t);font-family:var(--fm);font-size:.75rem;outline:none}
+        .tt-edit-row input:focus,.tt-edit-row textarea:focus{border-color:var(--ac)}
+        .tt-edit-row .tt-e-icon{width:50px}.tt-edit-row .tt-e-name{width:120px}.tt-edit-row .tt-e-desc{flex:1}
+        .tt-edit-row .tt-e-del{padding:4px 8px;background:none;border:1px solid var(--bd);border-radius:4px;color:var(--err);font-size:.75rem;cursor:pointer;align-self:center}
+
         .file-content{padding:18px 22px;background:#040408;color:var(--t2);font-family:var(--fm);font-size:.8rem;line-height:1.7;overflow:auto;max-height:60vh;white-space:pre-wrap;word-break:break-word}
         .toast-box{position:fixed;bottom:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:6px}
         .toast{padding:10px 16px;background:var(--sf);border:1px solid var(--bd);border-radius:6px;font-size:.8rem;animation:tIn .3s ease}
@@ -113,7 +144,7 @@
             #app{grid-template-columns:1fr;grid-template-areas:"h""m"}.menu-btn{display:block}
             .sidebar{position:fixed;left:-300px;top:var(--hh);bottom:0;width:var(--sw);z-index:50;transition:left .25s ease}.sidebar.open{left:0}.sidebar-ov.open{display:block}
             .tinfo{flex-direction:column;align-items:flex-start;gap:8px}.tinfo-dur{margin-left:0}.tinfo-acts{width:100%}.tinfo-acts .btn-i{flex:1;text-align:center}
-            .tpl-grid{grid-template-columns:repeat(2,1fr)}.followup-row{flex-direction:column}
+            .tt-grid{grid-template-columns:repeat(2,1fr)}.followup-row{flex-direction:column}.role-bar{padding:10px 14px 0}
         }
     </style>
 </head>
@@ -125,7 +156,7 @@
             <h1 class="logo">CLAUDE <span>HUB</span></h1>
         </div>
         <div class="header-r">
-            <button class="hdr-btn" onclick="showModal('personaModal')">&#9881; 个人设定</button>
+            <button class="hdr-btn" onclick="showRoleEditor()">&#9881; 角色管理</button>
             <span class="cdot" id="connDot"></span>
             <span id="connText">连接中...</span>
             <span class="tbadge" id="taskBadge">0 任务</span>
@@ -141,12 +172,13 @@
     <main class="main">
         <div class="empty-state" id="emptyState">
             <div class="empty-icon">&#x2B21;</div>
-            <h2>创建或选择一个任务</h2>
-            <p>选择模板，提交计划，Claude 自主执行</p>
+            <h2>选择角色，创建任务</h2>
+            <p>Claude 自主执行，你只看结果</p>
         </div>
 
         <div class="task-view" id="taskView" style="display:none">
             <div class="tinfo" id="tinfo"></div>
+            <div id="childrenWrap" class="children-wrap" style="display:none"></div>
             <div class="log-wrap">
                 <div class="log-bar">
                     <span>实时日志</span>
@@ -164,7 +196,7 @@
                 <div class="results-body" id="resultsBody"></div>
             </div>
             <div class="followup-wrap" id="followupWrap" style="display:none">
-                <div class="followup-label">继续对话 — 追加需求或修改意见</div>
+                <div class="followup-label">继续对话 — 追加需求</div>
                 <div class="followup-row">
                     <input class="followup-input" id="followupInput" placeholder="例如：把按钮颜色改成蓝色..." onkeydown="if(event.key==='Enter')sendFollowUp()">
                     <button class="followup-send" id="followupBtn" onclick="sendFollowUp()">发送</button>
@@ -174,29 +206,75 @@
         </div>
     </main>
 
+    <!-- New Task Modal -->
     <div class="modal-bg" id="newModal" style="display:none" onclick="if(event.target===this)hideModal('newModal')">
         <div class="modal wide">
             <div class="modal-head"><h2>新建任务</h2><button class="mx" onclick="hideModal('newModal')">&#10005;</button></div>
             <form id="taskForm" onsubmit="submitTask(event)">
-                <div class="fg"><label>选择任务类型</label><div class="tpl-grid" id="tplGrid"></div></div>
-                <div class="fg"><label>任务名称</label><input type="text" id="fName" placeholder="例如：用户管理后台" required></div>
-                <div class="fg"><label>项目路径</label><input type="text" id="fPath" placeholder="D:\projects\my-app" required></div>
-                <div class="fg"><label id="planLabel">开发计划 / 任务描述</label><textarea id="fPlan" placeholder="详细描述你的需求..."></textarea></div>
-                <div class="fbtns"><button type="button" class="btn-s" onclick="hideModal('newModal')">取消</button><button type="submit" class="btn-p">创建并执行</button></div>
+                <div class="fg">
+                    <label>选择角色</label>
+                    <div class="role-bar" id="roleBar"></div>
+                </div>
+                <div class="fg" id="taskTypeSection">
+                    <label>任务类型</label>
+                    <div class="tt-grid" id="ttGrid"></div>
+                </div>
+                <div class="fg">
+                    <label>任务名称</label>
+                    <input type="text" id="fName" placeholder="例如：用户管理后台" required>
+                </div>
+                <div class="fg">
+                    <label>项目路径</label>
+                    <input type="text" id="fPath" placeholder="D:\projects\my-app" required>
+                </div>
+                <div class="fg">
+                    <label id="planLabel">任务描述</label>
+                    <textarea id="fPlan" placeholder="详细描述你的需求..."></textarea>
+                </div>
+                <div class="fg" id="parallelSection" style="display:none">
+                    <div class="parallel-section">
+                        <div class="parallel-header">
+                            <span>&#x26A1; 并行子任务（可选，拆分后并行执行）</span>
+                            <button type="button" class="parallel-add" onclick="addSubTask()">+ 添加子任务</button>
+                        </div>
+                        <div id="subTaskList"></div>
+                    </div>
+                </div>
+                <div class="fbtns">
+                    <button type="button" class="btn-s" onclick="hideModal('newModal')">取消</button>
+                    <button type="submit" class="btn-p">创建并执行</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <div class="modal-bg" id="personaModal" style="display:none" onclick="if(event.target===this)hideModal('personaModal')">
+    <!-- Role Editor Modal -->
+    <div class="modal-bg" id="roleEditorModal" style="display:none" onclick="if(event.target===this)hideModal('roleEditorModal')">
         <div class="modal wide">
-            <div class="modal-head"><h2>&#9881; 个人设定</h2><div class="modal-head-r"><button class="btn-i" onclick="savePersona()">保存</button><button class="mx" onclick="hideModal('personaModal')">&#10005;</button></div></div>
-            <div style="padding:22px">
-                <p style="font-size:.75rem;color:var(--t2);margin-bottom:12px">定义你的身份、技术偏好、工作习惯。每次任务都会自动注入。</p>
-                <textarea class="persona-area" id="personaArea" placeholder="# 我的个人设定&#10;&#10;## 身份&#10;..."></textarea>
+            <div class="modal-head"><h2>&#9881; 角色管理</h2><div class="modal-head-r"><button class="btn-i" onclick="saveRoleFromEditor()">保存角色</button><button class="mx" onclick="hideModal('roleEditorModal')">&#10005;</button></div></div>
+            <div class="role-editor">
+                <div class="fg">
+                    <label>选择角色编辑</label>
+                    <select id="roleEditorSelect" onchange="loadRoleForEdit()">
+                        <option value="">-- 选择已有角色 --</option>
+                        <option value="_new">+ 创建新角色</option>
+                    </select>
+                </div>
+                <div class="fg"><label>角色 ID（英文）</label><input type="text" id="reId" placeholder="my-role"></div>
+                <div class="fg"><label>角色名称</label><input type="text" id="reName" placeholder="我的角色"></div>
+                <div class="fg"><label>图标（emoji）</label><input type="text" id="reIcon" placeholder="🎯" style="width:80px"></div>
+                <div class="fg"><label>描述</label><input type="text" id="reDesc" placeholder="角色描述"></div>
+                <div class="fg"><label>角色设定（Persona）</label><textarea id="rePersona" style="min-height:120px" placeholder="定义这个角色的身份、能力、工作习惯..."></textarea></div>
+                <div class="fg">
+                    <label>任务类型</label>
+                    <button type="button" class="parallel-add" onclick="addRoleTaskType()" style="margin-bottom:8px">+ 添加任务类型</button>
+                    <div id="reTaskTypes"></div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- File Viewer Modal -->
     <div class="modal-bg" id="fileModal" style="display:none" onclick="if(event.target===this)hideModal('fileModal')">
         <div class="modal wide">
             <div class="modal-head"><h2 id="fileTitle">文件</h2><div class="modal-head-r"><button class="btn-i" onclick="copyFile()">复制</button><button class="mx" onclick="hideModal('fileModal')">&#10005;</button></div></div>
@@ -209,8 +287,9 @@
 <div class="reconn" id="reconnBanner" style="display:none">连接断开，正在重连...</div>
 
 <script>
-    let ws=null,tasks=[],templates=[],persona='',selectedId=null,autoScroll=true,reconnTimer=null,curFileContent='',resultsExpanded=true,selectedTemplate=null;
+    let ws=null, tasks=[], roles=[], selectedId=null, autoScroll=true, reconnTimer=null, curFileContent='', resultsExpanded=true, selectedRole=null, selectedTaskType=null, subTaskCount=0;
 
+    // ── WebSocket ──
     function connect(){
         const p=location.protocol==='https:'?'wss:':'ws:';
         ws=new WebSocket(`${p}//${location.host}`);
@@ -223,25 +302,25 @@
 
     function handleMsg(msg){
         switch(msg.type){
-            case'init':tasks=msg.data.tasks;templates=msg.data.templates||[];persona=msg.data.persona||'';renderList();renderTplGrid();if(selectedId)selectTask(selectedId);document.getElementById('personaArea').value=persona;break;
+            case'init':tasks=msg.data.tasks;roles=msg.data.roles||[];renderList();renderRoleBar();updateRoleEditorSelect();if(selectedId)selectTask(selectedId);break;
             case'task_created':tasks.push(msg.data);renderList();selectTask(msg.data.id);toast('任务已创建','ok');break;
-            case'task_updated':{const i=tasks.findIndex(t=>t.id===msg.data.id);if(i>=0)tasks[i]={...tasks[i],...msg.data};renderList();if(selectedId===msg.data.id){renderInfo();renderResults();renderFollowUp()}if(msg.data.status==='completed'){toast(`"${msg.data.name}" 已完成`,'ok');notify(msg.data.name,'任务已完成')}else if(msg.data.status==='failed'){toast(`"${msg.data.name}" 失败`,'err');notify(msg.data.name,'任务失败')}break}
+            case'task_updated':{const i=tasks.findIndex(t=>t.id===msg.data.id);if(i>=0)tasks[i]={...tasks[i],...msg.data};renderList();if(selectedId===msg.data.id){renderInfo();renderChildren();renderResults();renderFollowUp()}if(msg.data.status==='completed'){toast(`"${msg.data.name}" 完成`,'ok');notify(msg.data.name,'已完成')}else if(msg.data.status==='failed'){toast(`"${msg.data.name}" 失败`,'err');notify(msg.data.name,'失败')}break}
             case'task_log':if(selectedId===msg.data.taskId)appendLog(msg.data.entry);break;
             case'task_logs':if(selectedId===msg.data.taskId){const v=document.getElementById('logViewer');v.innerHTML='';for(const e of msg.data.logs)appendLog(e)}break;
             case'task_deleted':tasks=tasks.filter(t=>t.id!==msg.data.taskId);if(selectedId===msg.data.taskId){selectedId=null;showEmpty()}renderList();break;
-            case'persona_updated':persona=msg.data.persona;document.getElementById('personaArea').value=persona;break;
-            case'templates_updated':templates=msg.data.templates;renderTplGrid();break;
+            case'roles_updated':roles=msg.data.roles;renderRoleBar();updateRoleEditorSelect();break;
         }
     }
 
+    // ── Render ──
     function renderList(){
         const el=document.getElementById('taskList');
         const running=tasks.filter(t=>t.status==='running').length;
         document.getElementById('taskBadge').textContent=`${running} 运行 / ${tasks.length} 总计`;
-        el.innerHTML=tasks.slice().sort((a,b)=>b.createdAt-a.createdAt).map(t=>`
+        el.innerHTML=tasks.filter(t=>!t.parentId).slice().sort((a,b)=>b.createdAt-a.createdAt).map(t=>`
     <div class="task-item ${t.id===selectedId?'active':''}" onclick="selectTask('${t.id}')">
-      <div class="task-item-name">${tplIcon(t.templateId)} ${esc(t.name)}</div>
-      <div class="task-item-meta"><span class="tdot ${t.status}"></span><span>${statusText(t.status)}</span>${t.status==='running'?`<span>&middot; ${t.phaseName}</span>`:''}</div>
+      <div class="task-item-name">${roleIcon(t.roleId)} ${esc(t.name)}</div>
+      <div class="task-item-meta"><span class="tdot ${t.status}"></span><span>${statusText(t.status)}</span>${t.status==='running'?`<span>&middot; ${t.phaseName}</span>`:''}${t.childIds&&t.childIds.length?`<span>&middot; ${t.childIds.length}子任务</span>`:''}</div>
     </div>`).join('');
     }
 
@@ -250,16 +329,18 @@
         document.getElementById('emptyState').style.display='none';
         document.getElementById('taskView').style.display='flex';
         document.getElementById('logViewer').innerHTML='';
-        renderInfo();renderResults();renderFollowUp();
+        renderInfo();renderChildren();renderResults();renderFollowUp();
         send('get_logs',{taskId:id});renderList();
         if(window.innerWidth<=768)toggleSidebar();
     }
 
     function renderInfo(){
         const t=tasks.find(t=>t.id===selectedId);if(!t)return;
+        const roleName=t.roleId?(roles.find(r=>r.id===t.roleId)||{}).name:'';
         document.getElementById('tinfo').innerHTML=`
     <span class="tinfo-name">${esc(t.name)}</span>
     <span class="badge ${t.status}">${statusText(t.status)}</span>
+    ${roleName?`<span style="font-size:.625rem;color:var(--t3)">${roleName}</span>`:''}
     ${t.status==='running'?`<span class="tinfo-phase">${t.phaseName}</span>`:''}
     ${t.status==='failed'&&t.error?`<span class="tinfo-phase" style="color:var(--err)">${esc(t.error).substring(0,60)}</span>`:''}
     <span class="tinfo-dur" id="durEl">${fmtDur(t.duration)}</span>
@@ -269,8 +350,21 @@
     </div>`;
     }
 
+    function renderChildren(){
+        const t=tasks.find(t=>t.id===selectedId);
+        const wrap=document.getElementById('childrenWrap');
+        if(!t||!t.childIds||!t.childIds.length){wrap.style.display='none';return}
+        wrap.style.display='block';
+        wrap.innerHTML=t.childIds.map(cid=>{
+            const ct=tasks.find(x=>x.id===cid);
+            if(!ct)return'';
+            return`<div class="child-item"><span class="tdot ${ct.status}"></span><span>${esc(ct.name)}</span><span style="color:var(--t3)">${statusText(ct.status)}${ct.error?' - '+esc(ct.error).substring(0,40):''}</span></div>`;
+        }).join('');
+    }
+
     function renderResults(){
-        const t=tasks.find(t=>t.id===selectedId);const wrap=document.getElementById('resultsWrap'),body=document.getElementById('resultsBody');
+        const t=tasks.find(t=>t.id===selectedId);
+        const wrap=document.getElementById('resultsWrap'),body=document.getElementById('resultsBody');
         if(!t||!t.results||!t.results.files||!t.results.files.length){wrap.style.display='none';return}
         wrap.style.display='block';
         body.innerHTML=t.results.files.map(f=>`<div class="rfile"><div class="rfile-info"><span class="rfile-name">${fileIcon(f.name)} ${esc(f.name)}</span><span class="rfile-size">${fmtSize(f.size)}</span></div><button class="rfile-btn" onclick="viewFile('${escAttr(f.path)}')">查看</button></div>`).join('');
@@ -280,34 +374,160 @@
         const t=tasks.find(t=>t.id===selectedId);const wrap=document.getElementById('followupWrap');
         if(!t||t.status==='running'){wrap.style.display='none';return}
         wrap.style.display='block';
-        const hist=document.getElementById('followupHist');
-        hist.innerHTML=(t.followUps&&t.followUps.length)?t.followUps.map(f=>`<div class="fu-item">${esc(f.prompt)}</div>`).join(''):'';
+        document.getElementById('followupHist').innerHTML=(t.followUps&&t.followUps.length)?t.followUps.map(f=>`<div class="fu-item">${esc(f.prompt)}</div>`).join(''):'';
     }
 
-    function renderTplGrid(){
-        const grid=document.getElementById('tplGrid');
-        const items=[{id:'auto',icon:'&#x2699;&#xFE0F;',name:'自适应',description:'自动判断工作流'},...templates.map(t=>({id:t.id,icon:t.icon||'&#x1F4C4;',name:t.name,description:t.description||''}))];
-        grid.innerHTML=items.map(t=>`<div class="tpl-card ${selectedTemplate===t.id?'active':''}" onclick="selectTpl('${t.id}')"><div class="tpl-icon">${t.icon}</div><div class="tpl-name">${esc(t.name)}</div><div class="tpl-desc">${esc(t.description)}</div></div>`).join('');
+    // ── Role Bar ──
+    function renderRoleBar(){
+        const bar=document.getElementById('roleBar');
+        bar.innerHTML=roles.map(r=>`<div class="role-chip ${selectedRole===r.id?'active':''}" onclick="selectRole('${r.id}')">${r.icon} ${esc(r.name)}</div>`).join('');
     }
 
-    function selectTpl(id){selectedTemplate=id;renderTplGrid();const label=document.getElementById('planLabel'),area=document.getElementById('fArea');if(id==='auto'){label.textContent='开发计划';area.placeholder='详细描述你的需求...'}else{const tpl=templates.find(t=>t.id===id);if(tpl){label.textContent=`${tpl.icon} ${tpl.name} — 任务描述`;area.placeholder=tpl.description||'描述你的需求...'}}}
+    function selectRole(id){
+        selectedRole=selectedRole===id?null:id;
+        selectedTaskType=null;
+        renderRoleBar();renderTaskTypes();
+    }
+
+    function renderTaskTypes(){
+        const grid=document.getElementById('ttGrid');
+        const section=document.getElementById('taskTypeSection');
+        const parallelSection=document.getElementById('parallelSection');
+
+        if(!selectedRole){section.style.display='none';parallelSection.style.display='none';return}
+
+        const role=roles.find(r=>r.id===selectedRole);
+        if(!role||!role.tasks||!role.tasks.length){section.style.display='none';return}
+
+        section.style.display='block';
+        grid.innerHTML=role.tasks.map(t=>`<div class="tt-card ${selectedTaskType===t.id?'active':''}" onclick="selectTaskType('${t.id}')"><div class="tt-icon">${t.icon}</div><div class="tt-name">${esc(t.name)}</div><div class="tt-desc">${esc(t.description||'')}</div></div>`).join('');
+
+        // 并行选项
+        parallelSection.style.display=selectedTaskType?'block':'none';
+    }
+
+    function selectTaskType(id){
+        selectedTaskType=selectedTaskType===id?null:id;
+        renderTaskTypes();
+        const role=roles.find(r=>r.id===selectedRole);
+        if(role){
+            const tt=role.tasks.find(t=>t.id===selectedTaskType);
+            if(tt){
+                document.getElementById('planLabel').textContent=`${tt.icon} ${tt.name} — 任务描述`;
+                document.getElementById('fPlan').placeholder=tt.description||'描述你的需求...';
+            }
+        }
+    }
+
+    // ── Sub Tasks ──
+    function addSubTask(){
+        subTaskCount++;
+        const list=document.getElementById('subTaskList');
+        const row=document.createElement('div');row.className='sub-task-row';row.id=`subtask-${subTaskCount}`;
+        row.innerHTML=`<input placeholder="子任务名称"><input placeholder="子任务描述（可选）" style="flex:2"><button type="button" class="sub-task-del" onclick="this.parentElement.remove()">删除</button>`;
+        list.appendChild(row);
+    }
+
+    // ── Role Editor ──
+    function showRoleEditor(){
+        updateRoleEditorSelect();
+        showModal('roleEditorModal');
+    }
+
+    function updateRoleEditorSelect(){
+        const sel=document.getElementById('roleEditorSelect');
+        sel.innerHTML='<option value="">-- 选择已有角色 --</option><option value="_new">+ 创建新角色</option>'+roles.map(r=>`<option value="${r.id}">${r.icon} ${r.name}</option>`).join('');
+    }
+
+    function loadRoleForEdit(){
+        const id=document.getElementById('roleEditorSelect').value;
+        if(!id||id==='_new'){
+            document.getElementById('reId').value='';
+            document.getElementById('reName').value='';
+            document.getElementById('reIcon').value='';
+            document.getElementById('reDesc').value='';
+            document.getElementById('rePersona').value='';
+            document.getElementById('reTaskTypes').innerHTML='';
+            return;
+        }
+        const role=roles.find(r=>r.id===id);
+        if(!role)return;
+        document.getElementById('reId').value=role.id;
+        document.getElementById('reId').disabled=true;
+        document.getElementById('reName').value=role.name;
+        document.getElementById('reIcon').value=role.icon;
+        document.getElementById('reDesc').value=role.description||'';
+        document.getElementById('rePersona').value=role.persona||'';
+        const container=document.getElementById('reTaskTypes');
+        container.innerHTML='';
+        for(const tt of(role.tasks||[])){
+            addRoleTaskTypeRow(tt.icon,tt.name,tt.description,tt.promptSuffix);
+        }
+    }
+
+    function addRoleTaskType(){addRoleTaskTypeRow('','','','')}
+
+    function addRoleTaskTypeRow(icon,name,desc,suffix){
+        const container=document.getElementById('reTaskTypes');
+        const row=document.createElement('div');row.className='tt-edit-row';
+        row.innerHTML=`<input class="tt-e-icon" placeholder="图标" value="${esc(icon)}"><input class="tt-e-name" placeholder="类型名" value="${esc(name)}"><textarea class="tt-e-desc" placeholder="描述" rows="1">${esc(desc)}</textarea><input class="tt-e-icon" placeholder="补充指令" value="${esc(suffix||'')}"><button type="button" class="tt-e-del" onclick="this.parentElement.remove()">删除</button>`;
+        container.appendChild(row);
+    }
+
+    function saveRoleFromEditor(){
+        const id=document.getElementById('reId').value.trim();
+        if(!id){toast('角色 ID 不能为空','err');return}
+        const rows=document.getElementById('reTaskTypes').querySelectorAll('.tt-edit-row');
+        const taskTypes=[];
+        rows.forEach(row=>{
+            const inputs=row.querySelectorAll('input,textarea');
+            taskTypes.push({id:(inputs[1].value||'custom-'+Date.now()).replace(/\s/g,'-').toLowerCase(),icon:inputs[0].value||'📌',name:inputs[1].value||'未命名',description:inputs[2].value,promptSuffix:inputs[3].value||''});
+        });
+        const roleData={
+            id,name:document.getElementById('reName').value||id,icon:document.getElementById('reIcon').value||'📌',
+            description:document.getElementById('reDesc').value,persona:document.getElementById('rePersona').value,tasks:taskTypes
+        };
+        send('save_role',roleData);
+        toast('角色已保存','ok');
+        hideModal('roleEditorModal');
+    }
 
     function appendLog(entry){const v=document.getElementById('logViewer');const d=document.createElement('div');d.className=`lline ${entry.stream}`;d.textContent=entry.text;v.appendChild(d);while(v.children.length>8000)v.removeChild(v.firstChild);if(autoScroll)v.scrollTop=v.scrollHeight}
     function showEmpty(){document.getElementById('emptyState').style.display='flex';document.getElementById('taskView').style.display='none'}
     function showModal(id){document.getElementById(id).style.display='flex'}
     function hideModal(id){document.getElementById(id).style.display='none'}
 
-    function showNewModal(){selectedTemplate='auto';renderTplGrid();const saved=localStorage.getItem('ch_path');if(saved)document.getElementById('fPath').value=saved;showModal('newModal');document.getElementById('fName').focus()}
+    function showNewModal(){
+        selectedRole=null;selectedTaskType=null;subTaskCount=0;
+        renderRoleBar();renderTaskTypes();
+        document.getElementById('subTaskList').innerHTML='';
+        document.getElementById('parallelSection').style.display='none';
+        document.getElementById('planLabel').textContent='任务描述';
+        const saved=localStorage.getItem('ch_path');if(saved)document.getElementById('fPath').value=saved;
+        showModal('newModal');document.getElementById('fName').focus();
+    }
 
     function submitTask(e){
         e.preventDefault();
-        const data={name:document.getElementById('fName').value,type:selectedTemplate==='auto'?'auto':'template',templateId:selectedTemplate==='auto'?null:selectedTemplate,projectPath:document.getElementById('fPath').value,plan:document.getElementById('fPlan').value};
+        const subRows=document.getElementById('subTaskList').querySelectorAll('.sub-task-row');
+        const subTasks=[];
+        subRows.forEach(row=>{
+            const inputs=row.querySelectorAll('input');
+            if(inputs[0].value.trim())subTasks.push({name:inputs[0].value.trim(),plan:inputs[1].value.trim()||inputs[0].value.trim()});
+        });
+        const data={
+            name:document.getElementById('fName').value,
+            type:subTasks.length>0?'parallel':'single',
+            roleId:selectedRole,taskTypeId:selectedTaskType,
+            projectPath:document.getElementById('fPath').value,
+            plan:document.getElementById('fPlan').value,
+            subTasks:subTasks.length>0?subTasks:undefined,
+        };
         localStorage.setItem('ch_path',data.projectPath);
         send('create_task',data);hideModal('newModal');document.getElementById('taskForm').reset();
     }
 
     function sendFollowUp(){const input=document.getElementById('followupInput');const text=input.value.trim();if(!text)return;const btn=document.getElementById('followupBtn');btn.disabled=true;btn.textContent='执行中...';send('follow_up',{taskId:selectedId,prompt:text});input.value='';setTimeout(()=>{btn.disabled=false;btn.textContent='发送'},2000)}
-    function savePersona(){send('save_persona',{content:document.getElementById('personaArea').value});toast('已保存','ok');hideModal('personaModal')}
     function cancelTask(id){send('cancel_task',{taskId:id});toast('取消中...','info')}
     function deleteTask(id){send('delete_task',{taskId:id})}
     function toggleScroll(){autoScroll=!autoScroll;const b=document.getElementById('autoScrollBtn');b.textContent=autoScroll?'自动滚动':'手动滚动';b.className=autoScroll?'on':''}
@@ -323,7 +543,7 @@
     function fmtSize(b){return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'}
     function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
     function escAttr(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
-    function tplIcon(tid){if(!tid||tid==='auto')return'\u2699\uFE0F';const t=templates.find(x=>x.id===tid);return t?t.icon:'\uD83D\uDCC4'}
+    function roleIcon(rid){if(!rid)return'\u2699\uFE0F';const r=roles.find(x=>x.id===rid);return r?r.icon:'\uD83D\uDCC4'}
     function fileIcon(n){return n.includes('completed')?'\u2705':n.includes('issues')?'\u26A0\uFE0F':n.includes('remaining')?'\u23F3':'\uD83D\uDCC4'}
     function toast(msg,type){const box=document.getElementById('toastBox');const t=document.createElement('div');t.className=`toast ${type||'info'}`;t.textContent=msg;box.appendChild(t);setTimeout(()=>t.remove(),3500)}
     function notify(t,b){if('Notification' in window&&Notification.permission==='granted')new Notification(`Claude Hub \u00B7 ${t}`,{body:b})}

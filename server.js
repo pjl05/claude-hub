@@ -92,6 +92,7 @@ function loadIndex() {
       t.logs = []; t.currentProcess = null;
       t.followUps = t.followUps || [];
       t.childIds = t.childIds || [];
+      t.retryCount = t.retryCount || 0;  // ← 新增
       tasks.set(t.id, t);
     }
     console.log(`  已加载 ${list.length} 个历史任务`);
@@ -125,6 +126,7 @@ function serializeTask(t) {
     parentId: t.parentId || null,
     childIds: t.childIds || [],
     duration: t.startedAt ? (t.completedAt || Date.now()) - t.startedAt : 0,
+    retryCount: t.retryCount || 0
   };
 }
 
@@ -205,6 +207,7 @@ function createTask(data) {
     followUps: [],
     parentId: data.parentId || null,
     childIds: [],
+    retryCount: 0,  // ← 新增
   };
 
   // 如果是并行拆分模式，创建子任务
@@ -224,6 +227,7 @@ function createTask(data) {
         logs: [], error: null, currentProcess: null, results: null,
         plan: sub.plan || '', followUps: [],
         parentId: id, childIds: [],
+        retryCount: 0,
       };
       tasks.set(subId, subTask);
       task.childIds.push(subId);
@@ -243,56 +247,75 @@ function createTask(data) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  执行引擎
+//  执行引擎（并行 + 失败重试）
 // ═══════════════════════════════════════════════════════════
+
+const MAX_RETRY = 1; // 每个子任务最多重试 1 次
+
 function tryExecuteNext() {
-  while (runningCount < CONFIG.maxConcurrent && queue.length > 0) {
+  // 扫描队列，能执行的就执行，不能的放回去
+  const pending = [];
+  let processed = 0;
+
+  while (queue.length > 0) {
     const id = queue.shift();
     const task = tasks.get(id);
     if (!task) continue;
 
-    // 并行主任务：等所有子任务完成后再执行
-    if (task.type === 'parallel' && task.childIds.length > 0) {
+    // 并行主任务：检查子任务是否全部结束
+    if (task.type === 'parallel' && task.childIds && task.childIds.length > 0) {
       const allDone = task.childIds.every(cid => {
         const ct = tasks.get(cid);
         return ct && (ct.status === 'completed' || ct.status === 'failed' || ct.status === 'cancelled');
       });
       if (!allDone) {
-        // 还有子任务没完成，放回队列末尾
-        queue.push(id);
-        break;
+        pending.push(id); // 子任务还没完，放回去
+        continue;
       }
     }
 
     if (task.status === 'queued') {
-      runningCount++;
-      executeTask(task).finally(() => {
-        runningCount--;
-        tryExecuteNext();
-      });
+      if (runningCount < CONFIG.maxConcurrent) {
+        runningCount++;
+        processed++;
+        executeTask(task).finally(() => {
+          runningCount--;
+          tryExecuteNext();
+        });
+      } else {
+        pending.push(id); // 并发满了，放回去
+      }
     }
   }
+
+  // 把还没处理的放回队列
+  for (const id of pending) queue.push(id);
 }
 
 async function executeTask(task) {
   task.status = 'running';
   task.startedAt = Date.now();
-  task.phase = 1;
+  saveIndex();
+  broadcast({ type: 'task_updated', data: serializeTask(task) });
 
-  // 并行主任务：进入合并检查阶段
-  if (task.type === 'parallel' && task.childIds.length > 0) {
-    task.phaseName = '合并检查中';
-    saveIndex();
-    broadcast({ type: 'task_updated', data: serializeTask(task) });
+  try {
+    // ── 并行主任务：只做合并检查 ──
+    if (task.type === 'parallel' && task.childIds && task.childIds.length > 0) {
+      task.phase = 1;
+      task.phaseName = '合并检查中';
+      broadcast({ type: 'task_updated', data: serializeTask(task) });
 
-    try {
       appendLog(task, '═══════════════════════════════════════\n  合并子任务结果\n═══════════════════════════════════════\n\n', 'system');
 
-      // 收集子任务结果摘要
+      // 收集子任务结果
       const childSummary = task.childIds.map(cid => {
         const ct = tasks.get(cid);
-        return `- ${ct.name}: ${ct.status}${ct.error ? ' (错误: ' + ct.error + ')' : ''}`;
+        const status = ct.status === 'completed' ? '✓ 完成' : ct.status === 'failed' ? '✗ 失败' : '⚠ 取消';
+        const retry = ct.retryCount > 0 ? ` (重试${ct.retryCount}次)` : '';
+        return `- ${ct.name}: ${status}${retry}${ct.error ? ' → ' + ct.error : ''}`;
       }).join('\n');
+
+      appendLog(task, childSummary + '\n\n', 'system');
 
       const mergePrompt = buildMergePrompt(task, childSummary);
       const planFile = path.join(task.projectPath, 'PLAN.md');
@@ -300,29 +323,27 @@ async function executeTask(task) {
 
       await runClaude(task, '读取当前目录下的 PLAN.md 文件，按照其中的指令执行合并和检查。', 150);
 
-      task.status = 'completed';
-      task.results = collectResults(task);
-      appendLog(task, '\n✓ 并行任务完成\n', 'system');
-    } catch (err) {
-      task.status = 'failed';
-      task.error = err.message;
-      appendLog(task, `\n✗ 合并失败: ${err.message}\n`, 'system');
-    }
-  } else {
-    // 普通任务：自主执行
-    task.phaseName = '自主执行中';
-    saveIndex();
-    broadcast({ type: 'task_updated', data: serializeTask(task) });
+      if (task.status !== 'cancelled') {
+        task.status = 'completed';
+        task.results = collectResults(task);
+        appendLog(task, '\n✓ 并行任务完成\n', 'system');
+      }
 
-    try {
+    } else {
+      // ── 普通任务 / 子任务：自主执行 ──
+      task.phase = 1;
+      task.phaseName = '自主执行中';
+      broadcast({ type: 'task_updated', data: serializeTask(task) });
+
       const fullPrompt = buildPrompt(task);
       const planFile = path.join(task.projectPath, 'PLAN.md');
       fs.writeFileSync(planFile, fullPrompt, 'utf-8');
-      appendLog(task, `[指令文件] ${planFile}\n\n`, 'system');
+      appendLog(task, `[指令] ${planFile}\n\n`, 'system');
 
       appendLog(task, '═══════════════════════════════════════\n  开始自主执行\n═══════════════════════════════════════\n\n', 'system');
       await runClaude(task, '读取当前目录下的 PLAN.md 文件，按照其中的指令逐步执行。直接开始，不要等待确认。', 300);
 
+      // 执行完成后检查结果
       if (task.status !== 'cancelled') {
         task.phase = 2;
         task.phaseName = '检查结果';
@@ -340,12 +361,40 @@ async function executeTask(task) {
         task.results = collectResults(task);
         appendLog(task, '\n✓ 任务完成\n', 'system');
       }
-    } catch (err) {
-      if (task.status !== 'cancelled') {
-        task.status = 'failed';
-        task.error = err.message;
-        appendLog(task, `\n✗ 失败: ${err.message}\n`, 'system');
-      }
+    }
+
+  } catch (err) {
+    // ── 失败处理：检查是否需要重试 ──
+    if (task.status === 'cancelled') {
+      // 用户主动取消，不重试
+    } else if (task.parentId && (task.retryCount || 0) < MAX_RETRY) {
+      // 子任务失败：自动重试
+      task.retryCount = (task.retryCount || 0) + 1;
+      appendLog(task, `\n⚠ 执行失败，自动重试 (${task.retryCount}/${MAX_RETRY})...\n\n`, 'system');
+
+      // 重置状态，加入重试上下文
+      task.status = 'queued';
+      task.phase = 0;
+      task.phaseName = '重试中';
+      task.startedAt = null;
+      task.completedAt = null;
+
+      // 把失败信息注入到 plan 中，让 Claude 知道上次为什么失败
+      task.plan = task.plan + `\n\n## 上次执行失败\n\n错误信息：${err.message}\n请特别注意避免同样的问题。`;
+
+      saveIndex();
+      broadcast({ type: 'task_updated', data: serializeTask(task) });
+
+      // 重新加入队列
+      queue.push(task.id);
+      tryExecuteNext();
+      return; // 不标记为最终失败
+
+    } else {
+      // 重试次数用完，或主任务失败
+      task.status = 'failed';
+      task.error = err.message;
+      appendLog(task, `\n✗ 失败: ${err.message}\n`, 'system');
     }
   }
 
@@ -354,6 +403,7 @@ async function executeTask(task) {
   saveIndex();
   broadcast({ type: 'task_updated', data: serializeTask(task) });
 }
+
 
 // ═══════════════════════════════════════════════════════════
 //  Claude 执行器

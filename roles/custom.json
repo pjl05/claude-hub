@@ -1,0 +1,16 @@
+{
+  "id": "custom",
+  "name": "自定义角色",
+  "icon": "🎭",
+  "description": "完全自定义的角色和任务类型",
+  "persona": "",
+  "tasks": [
+    {
+      "id": "custom-task",
+      "name": "自定义任务",
+      "icon": "📌",
+      "description": "自由描述你的需求",
+      "promptSuffix": ""
+    }
+  ]
+}
