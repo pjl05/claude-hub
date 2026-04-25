@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Claude Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--bg:#07070d;--bg-s:#0a0a14;--sf:#0f0f1a;--sf-h:#151524;--sf-a:#1b1b30;--bd:#1a1a2e;--bd-l:#262640;--ac:#22d3ee;--ac-d:#0e7490;--ac-g:rgba(34,211,238,.1);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--t:#e2e8f0;--t2:#94a3b8;--t3:#475569;--fd:'Syne',sans-serif;--fm:'DM Mono',monospace;--hh:54px;--sw:290px}
+        html,body{height:100%;font-family:var(--fm);font-size:13px;background:var(--bg);color:var(--t);-webkit-font-smoothing:antialiased;overflow:hidden}
+        #app{display:grid;grid-template-rows:var(--hh) 1fr;grid-template-columns:var(--sw) 1fr;grid-template-areas:"h h""s m";height:100vh}
+        .header{grid-area:h}.sidebar{grid-area:s}.main{grid-area:m}
+        .header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--bg-s);border-bottom:1px solid var(--bd);z-index:100}
+        .header-l{display:flex;align-items:center;gap:12px}
+        .menu-btn{display:none;background:none;border:none;color:var(--t);font-size:20px;cursor:pointer;padding:4px}
+        .logo{font-family:var(--fd);font-weight:700;font-size:1.05rem;letter-spacing:.1em}
+        .logo span{color:var(--ac)}
+        .header-r{display:flex;align-items:center;gap:10px;font-size:.6875rem;color:var(--t2)}
+        .hdr-btn{padding:4px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t2);font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
+        .hdr-btn:hover{background:var(--sf-h);color:var(--t)}
+        .cdot{width:7px;height:7px;border-radius:50%;background:var(--err);transition:all .3s}
+        .cdot.on{background:var(--ok);box-shadow:0 0 8px rgba(52,211,153,.5)}
+        .tbadge{padding:2px 8px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;font-size:.625rem}
+        .sidebar{background:var(--bg-s);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+        .new-btn{margin:14px;padding:11px;background:var(--ac);color:#000;border:none;border-radius:6px;font-family:var(--fd);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s;letter-spacing:.02em}
+        .new-btn:hover{background:#06b6d4;transform:translateY(-1px)}
+        .task-list{flex:1;overflow-y:auto;padding:0 8px 16px}
+        .task-item{padding:10px 12px;margin-bottom:2px;border-radius:6px;cursor:pointer;transition:all .12s;border-left:3px solid transparent}
+        .task-item:hover{background:var(--sf-h)}
+        .task-item.active{background:var(--sf-a);border-left-color:var(--ac)}
+        .task-item-name{font-size:.8rem;font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .task-item-meta{display:flex;align-items:center;gap:6px;font-size:.625rem;color:var(--t3)}
+        .tdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        .tdot.queued{background:var(--t3)}.tdot.running{background:var(--ac);animation:pulse 1.5s infinite}.tdot.completed{background:var(--ok)}.tdot.failed{background:var(--err)}.tdot.cancelled{background:var(--warn)}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        .main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);background-image:linear-gradient(rgba(34,211,238,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.015) 1px,transparent 1px);background-size:48px 48px}
+        .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:10px}
+        .empty-icon{font-size:2.5rem;opacity:.2}
+        .empty-state h2{font-family:var(--fd);font-size:1rem;font-weight:600;color:var(--t2)}
+        .empty-state p{font-size:.8rem}
+        .task-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
+        .tinfo{padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        .tinfo-name{font-family:var(--fd);font-weight:600;font-size:.95rem}
+        .badge{padding:2px 10px;border-radius:4px;font-size:.625rem;font-weight:500}
+        .badge.running{background:rgba(34,211,238,.12);color:var(--ac)}.badge.completed{background:rgba(52,211,153,.12);color:var(--ok)}.badge.failed{background:rgba(248,113,113,.12);color:var(--err)}.badge.queued{background:rgba(71,85,105,.15);color:var(--t3)}.badge.cancelled{background:rgba(251,191,36,.12);color:var(--warn)}
+        .tinfo-phase{font-size:.6875rem;color:var(--t2)}
+        .tinfo-dur{font-size:.6875rem;color:var(--t3);margin-left:auto}
+        .tinfo-acts{display:flex;gap:6px}
+        .btn-i{padding:5px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t2);font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
+        .btn-i:hover{background:var(--sf-h);color:var(--t)}.btn-i.danger:hover{background:rgba(248,113,113,.1);color:var(--err);border-color:var(--err)}
+        .log-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
+        .log-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 20px;background:var(--sf);border-bottom:1px solid var(--bd);font-size:.6875rem;color:var(--t2)}
+        .log-ctrls{display:flex;gap:6px}
+        .log-ctrls button{padding:2px 8px;background:none;border:1px solid var(--bd);border-radius:3px;color:var(--t3);font-size:.625rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
+        .log-ctrls button:hover{color:var(--t);border-color:var(--bd-l)}.log-ctrls button.on{color:var(--ac);border-color:var(--ac-d)}
+        .log-viewer{flex:1;overflow-y:auto;padding:12px 20px;background:#040408;font-size:.8rem;line-height:1.7}
+        .lline{white-space:pre-wrap;word-break:break-all}
+        .lline.stdout{color:var(--t2)}.lline.stderr{color:var(--err)}.lline.system{color:var(--ac);font-style:italic}
+        .results-wrap{flex-shrink:0;border-top:1px solid var(--bd)}
+        .results-bar{padding:6px 20px;background:var(--sf);border-bottom:1px solid var(--bd);font-size:.6875rem;color:var(--t2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+        .results-bar:hover{background:var(--sf-h)}
+        .results-body{max-height:180px;overflow-y:auto;padding:8px 20px}
+        .rfile{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;margin-bottom:3px;background:var(--sf);border-radius:4px;border:1px solid var(--bd)}
+        .rfile-info{display:flex;align-items:center;gap:8px}.rfile-name{font-size:.8rem}.rfile-size{font-size:.625rem;color:var(--t3)}
+        .rfile-btn{padding:2px 10px;background:none;border:1px solid var(--bd);border-radius:3px;color:var(--ac);font-size:.625rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
+        .rfile-btn:hover{background:var(--ac-g);border-color:var(--ac)}
+        .followup-wrap{flex-shrink:0;border-top:1px solid var(--bd);padding:12px 20px;background:var(--sf)}
+        .followup-label{font-size:.6875rem;color:var(--t2);margin-bottom:6px}
+        .followup-row{display:flex;gap:8px}
+        .followup-input{flex:1;padding:9px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--t);font-family:var(--fm);font-size:.8rem;outline:none;transition:border-color .2s}
+        .followup-input:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-g)}
+        .followup-send{padding:9px 18px;background:var(--ac);color:#000;border:none;border-radius:5px;font-family:var(--fd);font-weight:600;font-size:.8rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+        .followup-send:hover{background:#06b6d4}.followup-send:disabled{opacity:.4;cursor:not-allowed}
+        .followup-hist{margin-top:8px;max-height:100px;overflow-y:auto}
+        .fu-item{padding:6px 10px;margin-bottom:4px;background:var(--bg);border-radius:4px;border-left:2px solid var(--ac-d);font-size:.75rem;color:var(--t2)}
+        .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(3px)}
+        .modal{background:var(--sf);border:1px solid var(--bd);border-radius:10px;width:580px;max-width:92vw;max-height:90vh;overflow-y:auto;animation:mIn .2s ease}
+        .modal.wide{width:780px}
+        @keyframes mIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+        .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--bd)}
+        .modal-head h2{font-family:var(--fd);font-size:.95rem;font-weight:600}
+        .modal-head-r{display:flex;gap:8px;align-items:center}
+        .mx{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px}.mx:hover{color:var(--t)}
+        form{padding:22px}
+        .fg{margin-bottom:14px}.fg label{display:block;margin-bottom:5px;font-size:.6875rem;color:var(--t2);font-weight:500}
+        .fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--t);font-family:var(--fm);font-size:.8rem;outline:none;transition:border-color .2s}
+        .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-g)}
+        .fg textarea{resize:vertical;min-height:140px;line-height:1.6}.fg select{cursor:pointer}
+        .fbtns{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+        .btn-p{padding:9px 22px;background:var(--ac);color:#000;border:none;border-radius:5px;font-family:var(--fd);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
+        .btn-p:hover{background:#06b6d4}
+        .btn-s{padding:9px 22px;background:var(--sf-h);color:var(--t2);border:1px solid var(--bd);border-radius:5px;font-family:var(--fm);font-size:.8rem;cursor:pointer}
+        .btn-s:hover{background:var(--sf-a);color:var(--t)}
+        .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+        .tpl-card{padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:8px;cursor:pointer;transition:all .15s;text-align:center}
+        .tpl-card:hover{border-color:var(--bd-l);background:var(--sf)}
+        .tpl-card.active{border-color:var(--ac);background:var(--ac-g)}
+        .tpl-icon{font-size:1.4rem;margin-bottom:4px}.tpl-name{font-size:.75rem;font-weight:500}.tpl-desc{font-size:.6rem;color:var(--t3);margin-top:2px}
+        .persona-area{width:100%;min-height:350px;padding:14px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--t);font-family:var(--fm);font-size:.8rem;line-height:1.7;resize:vertical;outline:none}
+        .persona-area:focus{border-color:var(--ac)}
+        .file-content{padding:18px 22px;background:#040408;color:var(--t2);font-family:var(--fm);font-size:.8rem;line-height:1.7;overflow:auto;max-height:60vh;white-space:pre-wrap;word-break:break-word}
+        .toast-box{position:fixed;bottom:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:6px}
+        .toast{padding:10px 16px;background:var(--sf);border:1px solid var(--bd);border-radius:6px;font-size:.8rem;animation:tIn .3s ease}
+        .toast.ok{border-left:3px solid var(--ok)}.toast.err{border-left:3px solid var(--err)}.toast.info{border-left:3px solid var(--ac)}
+        @keyframes tIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+        .reconn{position:fixed;top:var(--hh);left:0;right:0;padding:6px;background:var(--err);color:#fff;text-align:center;font-size:.6875rem;z-index:150}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd-l);border-radius:3px}
+        .sidebar-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
+        @media(max-width:768px){
+            #app{grid-template-columns:1fr;grid-template-areas:"h""m"}.menu-btn{display:block}
+            .sidebar{position:fixed;left:-300px;top:var(--hh);bottom:0;width:var(--sw);z-index:50;transition:left .25s ease}.sidebar.open{left:0}.sidebar-ov.open{display:block}
+            .tinfo{flex-direction:column;align-items:flex-start;gap:8px}.tinfo-dur{margin-left:0}.tinfo-acts{width:100%}.tinfo-acts .btn-i{flex:1;text-align:center}
+            .tpl-grid{grid-template-columns:repeat(2,1fr)}.followup-row{flex-direction:column}
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header class="header">
+        <div class="header-l">
+            <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+            <h1 class="logo">CLAUDE <span>HUB</span></h1>
+        </div>
+        <div class="header-r">
+            <button class="hdr-btn" onclick="showModal('personaModal')">&#9881; 个人设定</button>
+            <span class="cdot" id="connDot"></span>
+            <span id="connText">连接中...</span>
+            <span class="tbadge" id="taskBadge">0 任务</span>
+        </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <button class="new-btn" onclick="showNewModal()">+ 新建任务</button>
+        <div class="task-list" id="taskList"></div>
+    </aside>
+    <div class="sidebar-ov" id="sidebarOv" onclick="toggleSidebar()"></div>
+
+    <main class="main">
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">&#x2B21;</div>
+            <h2>创建或选择一个任务</h2>
+            <p>选择模板，提交计划，Claude 自主执行</p>
+        </div>
+
+        <div class="task-view" id="taskView" style="display:none">
+            <div class="tinfo" id="tinfo"></div>
+            <div class="log-wrap">
+                <div class="log-bar">
+                    <span>实时日志</span>
+                    <div class="log-ctrls">
+                        <button id="autoScrollBtn" class="on" onclick="toggleScroll()">自动滚动</button>
+                        <button onclick="copyLogs()">复制日志</button>
+                    </div>
+                </div>
+                <div class="log-viewer" id="logViewer"></div>
+            </div>
+            <div class="results-wrap" id="resultsWrap" style="display:none">
+                <div class="results-bar" onclick="toggleResults()">
+                    <span>结果文件</span><span id="resultsToggle">&#9660;</span>
+                </div>
+                <div class="results-body" id="resultsBody"></div>
+            </div>
+            <div class="followup-wrap" id="followupWrap" style="display:none">
+                <div class="followup-label">继续对话 — 追加需求或修改意见</div>
+                <div class="followup-row">
+                    <input class="followup-input" id="followupInput" placeholder="例如：把按钮颜色改成蓝色..." onkeydown="if(event.key==='Enter')sendFollowUp()">
+                    <button class="followup-send" id="followupBtn" onclick="sendFollowUp()">发送</button>
+                </div>
+                <div class="followup-hist" id="followupHist"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-bg" id="newModal" style="display:none" onclick="if(event.target===this)hideModal('newModal')">
+        <div class="modal wide">
+            <div class="modal-head"><h2>新建任务</h2><button class="mx" onclick="hideModal('newModal')">&#10005;</button></div>
+            <form id="taskForm" onsubmit="submitTask(event)">
+                <div class="fg"><label>选择任务类型</label><div class="tpl-grid" id="tplGrid"></div></div>
+                <div class="fg"><label>任务名称</label><input type="text" id="fName" placeholder="例如：用户管理后台" required></div>
+                <div class="fg"><label>项目路径</label><input type="text" id="fPath" placeholder="D:\projects\my-app" required></div>
+                <div class="fg"><label id="planLabel">开发计划 / 任务描述</label><textarea id="fPlan" placeholder="详细描述你的需求..."></textarea></div>
+                <div class="fbtns"><button type="button" class="btn-s" onclick="hideModal('newModal')">取消</button><button type="submit" class="btn-p">创建并执行</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="personaModal" style="display:none" onclick="if(event.target===this)hideModal('personaModal')">
+        <div class="modal wide">
+            <div class="modal-head"><h2>&#9881; 个人设定</h2><div class="modal-head-r"><button class="btn-i" onclick="savePersona()">保存</button><button class="mx" onclick="hideModal('personaModal')">&#10005;</button></div></div>
+            <div style="padding:22px">
+                <p style="font-size:.75rem;color:var(--t2);margin-bottom:12px">定义你的身份、技术偏好、工作习惯。每次任务都会自动注入。</p>
+                <textarea class="persona-area" id="personaArea" placeholder="# 我的个人设定&#10;&#10;## 身份&#10;..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="fileModal" style="display:none" onclick="if(event.target===this)hideModal('fileModal')">
+        <div class="modal wide">
+            <div class="modal-head"><h2 id="fileTitle">文件</h2><div class="modal-head-r"><button class="btn-i" onclick="copyFile()">复制</button><button class="mx" onclick="hideModal('fileModal')">&#10005;</button></div></div>
+            <pre class="file-content" id="fileContent"></pre>
+        </div>
+    </div>
+</div>
+
+<div class="toast-box" id="toastBox"></div>
+<div class="reconn" id="reconnBanner" style="display:none">连接断开，正在重连...</div>
+
+<script>
+    let ws=null,tasks=[],templates=[],persona='',selectedId=null,autoScroll=true,reconnTimer=null,curFileContent='',resultsExpanded=true,selectedTemplate=null;
+
+    function connect(){
+        const p=location.protocol==='https:'?'wss:':'ws:';
+        ws=new WebSocket(`${p}//${location.host}`);
+        ws.onopen=()=>{setConn(true);if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null}};
+        ws.onclose=()=>{setConn(false);reconnTimer=setTimeout(connect,3000)};
+        ws.onerror=()=>ws.close();
+        ws.onmessage=e=>{try{handleMsg(JSON.parse(e.data))}catch{}};
+    }
+    function send(type,data){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type,data:data||{}}))}
+
+    function handleMsg(msg){
+        switch(msg.type){
+            case'init':tasks=msg.data.tasks;templates=msg.data.templates||[];persona=msg.data.persona||'';renderList();renderTplGrid();if(selectedId)selectTask(selectedId);document.getElementById('personaArea').value=persona;break;
+            case'task_created':tasks.push(msg.data);renderList();selectTask(msg.data.id);toast('任务已创建','ok');break;
+            case'task_updated':{const i=tasks.findIndex(t=>t.id===msg.data.id);if(i>=0)tasks[i]={...tasks[i],...msg.data};renderList();if(selectedId===msg.data.id){renderInfo();renderResults();renderFollowUp()}if(msg.data.status==='completed'){toast(`"${msg.data.name}" 已完成`,'ok');notify(msg.data.name,'任务已完成')}else if(msg.data.status==='failed'){toast(`"${msg.data.name}" 失败`,'err');notify(msg.data.name,'任务失败')}break}
+            case'task_log':if(selectedId===msg.data.taskId)appendLog(msg.data.entry);break;
+            case'task_logs':if(selectedId===msg.data.taskId){const v=document.getElementById('logViewer');v.innerHTML='';for(const e of msg.data.logs)appendLog(e)}break;
+            case'task_deleted':tasks=tasks.filter(t=>t.id!==msg.data.taskId);if(selectedId===msg.data.taskId){selectedId=null;showEmpty()}renderList();break;
+            case'persona_updated':persona=msg.data.persona;document.getElementById('personaArea').value=persona;break;
+            case'templates_updated':templates=msg.data.templates;renderTplGrid();break;
+        }
+    }
+
+    function renderList(){
+        const el=document.getElementById('taskList');
+        const running=tasks.filter(t=>t.status==='running').length;
+        document.getElementById('taskBadge').textContent=`${running} 运行 / ${tasks.length} 总计`;
+        el.innerHTML=tasks.slice().sort((a,b)=>b.createdAt-a.createdAt).map(t=>`
+    <div class="task-item ${t.id===selectedId?'active':''}" onclick="selectTask('${t.id}')">
+      <div class="task-item-name">${tplIcon(t.templateId)} ${esc(t.name)}</div>
+      <div class="task-item-meta"><span class="tdot ${t.status}"></span><span>${statusText(t.status)}</span>${t.status==='running'?`<span>&middot; ${t.phaseName}</span>`:''}</div>
+    </div>`).join('');
+    }
+
+    function selectTask(id){
+        selectedId=id;const task=tasks.find(t=>t.id===id);if(!task)return;
+        document.getElementById('emptyState').style.display='none';
+        document.getElementById('taskView').style.display='flex';
+        document.getElementById('logViewer').innerHTML='';
+        renderInfo();renderResults();renderFollowUp();
+        send('get_logs',{taskId:id});renderList();
+        if(window.innerWidth<=768)toggleSidebar();
+    }
+
+    function renderInfo(){
+        const t=tasks.find(t=>t.id===selectedId);if(!t)return;
+        document.getElementById('tinfo').innerHTML=`
+    <span class="tinfo-name">${esc(t.name)}</span>
+    <span class="badge ${t.status}">${statusText(t.status)}</span>
+    ${t.status==='running'?`<span class="tinfo-phase">${t.phaseName}</span>`:''}
+    ${t.status==='failed'&&t.error?`<span class="tinfo-phase" style="color:var(--err)">${esc(t.error).substring(0,60)}</span>`:''}
+    <span class="tinfo-dur" id="durEl">${fmtDur(t.duration)}</span>
+    <div class="tinfo-acts">
+      ${t.status==='running'||t.status==='queued'?`<button class="btn-i danger" onclick="cancelTask('${t.id}')">取消</button>`:''}
+      <button class="btn-i danger" onclick="deleteTask('${t.id}')">删除</button>
+    </div>`;
+    }
+
+    function renderResults(){
+        const t=tasks.find(t=>t.id===selectedId);const wrap=document.getElementById('resultsWrap'),body=document.getElementById('resultsBody');
+        if(!t||!t.results||!t.results.files||!t.results.files.length){wrap.style.display='none';return}
+        wrap.style.display='block';
+        body.innerHTML=t.results.files.map(f=>`<div class="rfile"><div class="rfile-info"><span class="rfile-name">${fileIcon(f.name)} ${esc(f.name)}</span><span class="rfile-size">${fmtSize(f.size)}</span></div><button class="rfile-btn" onclick="viewFile('${escAttr(f.path)}')">查看</button></div>`).join('');
+    }
+
+    function renderFollowUp(){
+        const t=tasks.find(t=>t.id===selectedId);const wrap=document.getElementById('followupWrap');
+        if(!t||t.status==='running'){wrap.style.display='none';return}
+        wrap.style.display='block';
+        const hist=document.getElementById('followupHist');
+        hist.innerHTML=(t.followUps&&t.followUps.length)?t.followUps.map(f=>`<div class="fu-item">${esc(f.prompt)}</div>`).join(''):'';
+    }
+
+    function renderTplGrid(){
+        const grid=document.getElementById('tplGrid');
+        const items=[{id:'auto',icon:'&#x2699;&#xFE0F;',name:'自适应',description:'自动判断工作流'},...templates.map(t=>({id:t.id,icon:t.icon||'&#x1F4C4;',name:t.name,description:t.description||''}))];
+        grid.innerHTML=items.map(t=>`<div class="tpl-card ${selectedTemplate===t.id?'active':''}" onclick="selectTpl('${t.id}')"><div class="tpl-icon">${t.icon}</div><div class="tpl-name">${esc(t.name)}</div><div class="tpl-desc">${esc(t.description)}</div></div>`).join('');
+    }
+
+    function selectTpl(id){selectedTemplate=id;renderTplGrid();const label=document.getElementById('planLabel'),area=document.getElementById('fArea');if(id==='auto'){label.textContent='开发计划';area.placeholder='详细描述你的需求...'}else{const tpl=templates.find(t=>t.id===id);if(tpl){label.textContent=`${tpl.icon} ${tpl.name} — 任务描述`;area.placeholder=tpl.description||'描述你的需求...'}}}
+
+    function appendLog(entry){const v=document.getElementById('logViewer');const d=document.createElement('div');d.className=`lline ${entry.stream}`;d.textContent=entry.text;v.appendChild(d);while(v.children.length>8000)v.removeChild(v.firstChild);if(autoScroll)v.scrollTop=v.scrollHeight}
+    function showEmpty(){document.getElementById('emptyState').style.display='flex';document.getElementById('taskView').style.display='none'}
+    function showModal(id){document.getElementById(id).style.display='flex'}
+    function hideModal(id){document.getElementById(id).style.display='none'}
+
+    function showNewModal(){selectedTemplate='auto';renderTplGrid();const saved=localStorage.getItem('ch_path');if(saved)document.getElementById('fPath').value=saved;showModal('newModal');document.getElementById('fName').focus()}
+
+    function submitTask(e){
+        e.preventDefault();
+        const data={name:document.getElementById('fName').value,type:selectedTemplate==='auto'?'auto':'template',templateId:selectedTemplate==='auto'?null:selectedTemplate,projectPath:document.getElementById('fPath').value,plan:document.getElementById('fPlan').value};
+        localStorage.setItem('ch_path',data.projectPath);
+        send('create_task',data);hideModal('newModal');document.getElementById('taskForm').reset();
+    }
+
+    function sendFollowUp(){const input=document.getElementById('followupInput');const text=input.value.trim();if(!text)return;const btn=document.getElementById('followupBtn');btn.disabled=true;btn.textContent='执行中...';send('follow_up',{taskId:selectedId,prompt:text});input.value='';setTimeout(()=>{btn.disabled=false;btn.textContent='发送'},2000)}
+    function savePersona(){send('save_persona',{content:document.getElementById('personaArea').value});toast('已保存','ok');hideModal('personaModal')}
+    function cancelTask(id){send('cancel_task',{taskId:id});toast('取消中...','info')}
+    function deleteTask(id){send('delete_task',{taskId:id})}
+    function toggleScroll(){autoScroll=!autoScroll;const b=document.getElementById('autoScrollBtn');b.textContent=autoScroll?'自动滚动':'手动滚动';b.className=autoScroll?'on':''}
+    function copyLogs(){navigator.clipboard.writeText(document.getElementById('logViewer').innerText).then(()=>toast('已复制','ok'))}
+    function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOv').classList.toggle('open')}
+    function toggleResults(){resultsExpanded=!resultsExpanded;document.getElementById('resultsBody').style.display=resultsExpanded?'block':'none';document.getElementById('resultsToggle').textContent=resultsExpanded?'\u25BC':'\u25B6'}
+    async function viewFile(fp){try{const r=await fetch(`/api/file?path=${encodeURIComponent(fp)}`);const d=await r.json();curFileContent=d.content;document.getElementById('fileTitle').textContent=fp.split(/[/\\]/).pop();document.getElementById('fileContent').textContent=d.content;showModal('fileModal')}catch{toast('读取失败','err')}}
+    function copyFile(){navigator.clipboard.writeText(curFileContent).then(()=>toast('已复制','ok'))}
+
+    function setConn(on){document.getElementById('connDot').className=`cdot ${on?'on':''}`;document.getElementById('connText').textContent=on?'已连接':'断开';document.getElementById('reconnBanner').style.display=on?'none':'block'}
+    function statusText(s){return{queued:'等待中',running:'运行中',completed:'已完成',failed:'失败',cancelled:'已取消'}[s]||s}
+    function fmtDur(ms){if(!ms)return'';const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);return h>0?`${h}h ${m%60}m`:m>0?`${m}m ${s%60}s`:`${s}s`}
+    function fmtSize(b){return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'}
+    function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+    function escAttr(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+    function tplIcon(tid){if(!tid||tid==='auto')return'\u2699\uFE0F';const t=templates.find(x=>x.id===tid);return t?t.icon:'\uD83D\uDCC4'}
+    function fileIcon(n){return n.includes('completed')?'\u2705':n.includes('issues')?'\u26A0\uFE0F':n.includes('remaining')?'\u23F3':'\uD83D\uDCC4'}
+    function toast(msg,type){const box=document.getElementById('toastBox');const t=document.createElement('div');t.className=`toast ${type||'info'}`;t.textContent=msg;box.appendChild(t);setTimeout(()=>t.remove(),3500)}
+    function notify(t,b){if('Notification' in window&&Notification.permission==='granted')new Notification(`Claude Hub \u00B7 ${t}`,{body:b})}
+    setInterval(()=>{for(const t of tasks)if(t.status==='running')t.duration=Date.now()-t.startedAt;if(selectedId){const t=tasks.find(t=>t.id===selectedId);if(t&&t.status==='running'){const el=document.getElementById('durEl');if(el)el.textContent=fmtDur(t.duration)}}},1000);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none');if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();showNewModal()}});
+    connect();
+    if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+</script>
+</body>
+</html>

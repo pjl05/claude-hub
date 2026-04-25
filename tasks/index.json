@@ -1,0 +1,155 @@
+[
+  {
+    "id": "c49e23051b2a71ed",
+    "name": "测试3",
+    "type": "full",
+    "projectPath": "D:\\person_ai_projects",
+    "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\c49e23051b2a71ed",
+    "status": "cancelled",
+    "phase": 2,
+    "phaseName": "自主开发",
+    "createdAt": 1777102537588,
+    "startedAt": 1777102537588,
+    "completedAt": 1777102890577,
+    "error": null,
+    "results": null,
+    "followUps": []
+  },
+  {
+    "id": "6f11fa3cb858eefc",
+    "name": "获取ai最新的资讯",
+    "type": "auto",
+    "templateId": null,
+    "projectPath": "D:\\person_ai_projects",
+    "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\6f11fa3cb858eefc",
+    "status": "completed",
+    "phase": 2,
+    "phaseName": "迭代中",
+    "createdAt": 1777107102115,
+    "startedAt": 1777107102116,
+    "completedAt": 1777107678192,
+    "error": null,
+    "results": {
+      "files": [
+        {
+          "name": "report-completed.md",
+          "path": "D:\\person_ai_projects\\docs\\report-completed.md",
+          "size": 3244,
+          "modified": 1777107318046.3906
+        },
+        {
+          "name": "report-issues.md",
+          "path": "D:\\person_ai_projects\\docs\\report-issues.md",
+          "size": 3911,
+          "modified": 1777107318500.7502
+        },
+        {
+          "name": "report-remaining.md",
+          "path": "D:\\person_ai_projects\\docs\\report-remaining.md",
+          "size": 4309,
+          "modified": 1777107318949.736
+        }
+      ]
+    },
+    "followUps": [
+      {
+        "prompt": "你完全没有按照我的想法啊 我需要的是你给我查阅最近的ai资讯 然后给我整理输出",
+        "time": 1777107576900
+      }
+    ]
+  },
+  {
+    "id": "7dc2133a98c2f8e4",
+    "name": "计划书测试",
+    "type": "template",
+    "templateId": "writing",
+    "projectPath": "D:\\person_ai_projects",
+    "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\7dc2133a98c2f8e4",
+    "status": "completed",
+    "phase": 2,
+    "phaseName": "生成报告",
+    "createdAt": 1777107904628,
+    "startedAt": 1777107904629,
+    "completedAt": 1777107983189,
+    "error": null,
+    "results": {
+      "files": [
+        {
+          "name": "report-completed.md",
+          "path": "D:\\person_ai_projects\\docs\\report-completed.md",
+          "size": 3244,
+          "modified": 1777107318046.3906
+        },
+        {
+          "name": "report-issues.md",
+          "path": "D:\\person_ai_projects\\docs\\report-issues.md",
+          "size": 3911,
+          "modified": 1777107318500.7502
+        },
+        {
+          "name": "report-remaining.md",
+          "path": "D:\\person_ai_projects\\docs\\report-remaining.md",
+          "size": 4309,
+          "modified": 1777107318949.736
+        }
+      ]
+    },
+    "followUps": []
+  },
+  {
+    "id": "760c1549a35974e2",
+    "name": "文档写作",
+    "type": "template",
+    "templateId": "writing",
+    "projectPath": "D:\\person_ai_projects",
+    "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\760c1549a35974e2",
+    "status": "completed",
+    "phase": 2,
+    "phaseName": "检查结果",
+    "createdAt": 1777109008909,
+    "startedAt": 1777109008910,
+    "completedAt": 1777109300676,
+    "error": null,
+    "results": {
+      "files": [
+        {
+          "name": "completed.md",
+          "path": "D:\\person_ai_projects\\docs\\completed.md",
+          "size": 966,
+          "modified": 1777109226024.7341
+        },
+        {
+          "name": "issues.md",
+          "path": "D:\\person_ai_projects\\docs\\issues.md",
+          "size": 785,
+          "modified": 1777109231437.437
+        },
+        {
+          "name": "remaining.md",
+          "path": "D:\\person_ai_projects\\docs\\remaining.md",
+          "size": 823,
+          "modified": 1777109236848.6753
+        },
+        {
+          "name": "report-completed.md",
+          "path": "D:\\person_ai_projects\\docs\\report-completed.md",
+          "size": 3244,
+          "modified": 1777107318046.3906
+        },
+        {
+          "name": "report-issues.md",
+          "path": "D:\\person_ai_projects\\docs\\report-issues.md",
+          "size": 3911,
+          "modified": 1777107318500.7502
+        },
+        {
+          "name": "report-remaining.md",
+          "path": "D:\\person_ai_projects\\docs\\report-remaining.md",
+          "size": 4309,
+          "modified": 1777107318949.736
+        }
+      ]
+    },
+    "followUps": []
+  }
+]

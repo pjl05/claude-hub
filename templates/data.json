@@ -1,0 +1,7 @@
+{
+  "id": "data",
+  "name": "数据处理",
+  "icon": "📊",
+  "description": "数据分析、脚本编写、自动化处理",
+  "promptTemplate": "你是一个数据工程师。\n\n## 任务\n\n请读取计划：{{PLAN_FILE}}\n工作目录：{{PROJECT_PATH}}\n\n## 执行规则\n\n1. 分析数据需求\n2. 编写处理脚本（Python 优先）\n3. 安装所需库\n4. 执行并验证结果\n5. 生成分析报告\n\n直接执行，不要等待确认。"
+}

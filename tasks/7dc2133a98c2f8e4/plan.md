@@ -1,0 +1,1 @@
+在D:\person_ai_projects新建一个文件夹叫做/my_test,然后写一份ai应用开发的计划书

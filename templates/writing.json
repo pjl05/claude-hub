@@ -1,0 +1,7 @@
+{
+  "id": "writing",
+  "name": "文档写作",
+  "icon": "📝",
+  "description": "技术文档、方案书、API 文档撰写",
+  "promptTemplate": "你是一个技术写作专家。\n\n## 写作要求\n\n{{PLAN}}\n\n## 输出\n\n将文档写入 {{PROJECT_PATH}}/docs/ 目录下。\n\n要求：\n1. 结构清晰，层次分明\n2. 语言简洁专业\n3. 配合代码示例和表格\n4. 包含目录导航\n5. 术语统一"
+}
