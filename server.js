@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════
-//  Claude Hub v4 — 角色系统 + 并行执行
+//  Claude Hub v5 — 完整版
+//  角色系统 + 任务模板 + AI规划 + 并行执行 + 失败重试
 // ═══════════════════════════════════════════════════════════
 
 const express = require('express');
@@ -19,6 +20,7 @@ const CONFIG = {
   baseDir: __dirname,
   tasksDir: path.join(__dirname, 'tasks'),
   rolesDir: path.join(__dirname, 'roles'),
+  templatesFile: path.join(__dirname, 'task-templates.json'),
 };
 
 fs.mkdirSync(CONFIG.tasksDir, { recursive: true });
@@ -36,7 +38,7 @@ const queue = [];
 let runningCount = 0;
 
 // ═══════════════════════════════════════════════════════════
-//  Role System — 角色系统
+//  Roles
 // ═══════════════════════════════════════════════════════════
 let roles = [];
 
@@ -47,7 +49,7 @@ function loadRoles() {
       try { return JSON.parse(fs.readFileSync(path.join(CONFIG.rolesDir, f), 'utf-8')); }
       catch { return null; }
     }).filter(Boolean);
-    console.log(`  已加载 ${roles.length} 个角色`);
+    console.log(`  ${roles.length} 个角色`);
   } catch {}
 }
 
@@ -56,6 +58,46 @@ function saveRole(roleData) {
   fs.writeFileSync(filePath, JSON.stringify(roleData, null, 2), 'utf-8');
   loadRoles();
   broadcast({ type: 'roles_updated', data: { roles } });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Task Templates — 任务模板
+// ═══════════════════════════════════════════════════════════
+let taskTemplates = [];
+
+function loadTaskTemplates() {
+  try {
+    if (fs.existsSync(CONFIG.templatesFile)) {
+      taskTemplates = JSON.parse(fs.readFileSync(CONFIG.templatesFile, 'utf-8'));
+      console.log(`  ${taskTemplates.length} 个任务模板`);
+    }
+  } catch {}
+}
+
+function saveTaskTemplates() {
+  fs.writeFileSync(CONFIG.templatesFile, JSON.stringify(taskTemplates, null, 2), 'utf-8');
+}
+
+function addTaskTemplate(data) {
+  const tpl = {
+    id: genId(),
+    name: data.name || '未命名模板',
+    roleId: data.roleId || null,
+    taskTypeId: data.taskTypeId || null,
+    projectPath: data.projectPath || '',
+    plan: data.plan || '',
+    createdAt: Date.now(),
+  };
+  taskTemplates.push(tpl);
+  saveTaskTemplates();
+  broadcast({ type: 'templates_updated', data: { taskTemplates } });
+  return tpl;
+}
+
+function deleteTaskTemplate(id) {
+  taskTemplates = taskTemplates.filter(t => t.id !== id);
+  saveTaskTemplates();
+  broadcast({ type: 'templates_updated', data: { taskTemplates } });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -73,9 +115,8 @@ function saveIndex() {
       status: t.status, phase: t.phase, phaseName: t.phaseName,
       createdAt: t.createdAt, startedAt: t.startedAt,
       completedAt: t.completedAt, error: t.error, results: t.results,
-      followUps: t.followUps || [],
-      parentId: t.parentId || null,
-      childIds: t.childIds || [],
+      followUps: t.followUps || [], parentId: t.parentId || null,
+      childIds: t.childIds || [], retryCount: t.retryCount || 0,
     });
   }
   fs.writeFileSync(INDEX_FILE, JSON.stringify(list, null, 2), 'utf-8');
@@ -92,10 +133,10 @@ function loadIndex() {
       t.logs = []; t.currentProcess = null;
       t.followUps = t.followUps || [];
       t.childIds = t.childIds || [];
-      t.retryCount = t.retryCount || 0;  // ← 新增
+      t.retryCount = t.retryCount || 0;
       tasks.set(t.id, t);
     }
-    console.log(`  已加载 ${list.length} 个历史任务`);
+    console.log(`  ${list.length} 个历史任务`);
   } catch {}
 }
 
@@ -123,10 +164,9 @@ function serializeTask(t) {
     completedAt: t.completedAt, error: t.error,
     logCount: t.logs.length, results: t.results,
     followUps: (t.followUps || []).map(f => ({ prompt: f.prompt, time: f.time })),
-    parentId: t.parentId || null,
-    childIds: t.childIds || [],
+    parentId: t.parentId || null, childIds: t.childIds || [],
+    retryCount: t.retryCount || 0,
     duration: t.startedAt ? (t.completedAt || Date.now()) - t.startedAt : 0,
-    retryCount: t.retryCount || 0
   };
 }
 
@@ -156,7 +196,10 @@ wss.on('connection', (ws) => {
   clients.add(ws);
   ws.send(JSON.stringify({
     type: 'init',
-    data: { tasks: Array.from(tasks.values()).map(serializeTask), roles },
+    data: {
+      tasks: Array.from(tasks.values()).map(serializeTask),
+      roles, taskTemplates,
+    },
   }));
   ws.on('message', (raw) => {
     try { handleMessage(ws, JSON.parse(raw)); } catch {}
@@ -171,6 +214,13 @@ function handleMessage(ws, msg) {
     case 'cancel_task': cancelTask(msg.data.taskId); break;
     case 'delete_task': deleteTask(msg.data.taskId); break;
     case 'save_role': saveRole(msg.data); break;
+    case 'save_template': {
+      const tpl = addTaskTemplate(msg.data);
+      ws.send(JSON.stringify({ type: 'template_saved', data: { template: tpl } }));
+      break;
+    }
+    case 'delete_template': deleteTaskTemplate(msg.data.templateId); break;
+    case 'plan_chat': handlePlanChat(ws, msg.data); break;
     case 'get_logs': {
       ws.send(JSON.stringify({ type: 'task_logs', data: { taskId: msg.data.taskId, logs: loadLogs(msg.data.taskId) } }));
       break;
@@ -184,50 +234,114 @@ function handleMessage(ws, msg) {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  AI 规划助手
+// ═══════════════════════════════════════════════════════════
+function handlePlanChat(ws, data) {
+  const { message, history, roleId, taskTypeId } = data;
+  const role = roles.find(r => r.id === roleId);
+  const taskType = role ? role.tasks.find(t => t.id === taskTypeId) : null;
+
+  const parts = [];
+  if (role && role.persona) parts.push(`## 你的角色\n\n${role.persona}\n`);
+  if (taskType) parts.push(`## 任务类型\n\n${taskType.icon} ${taskType.name}：${taskType.description}\n`);
+
+  if (history && history.length > 0) {
+    parts.push('## 对话历史\n');
+    for (const h of history) {
+      parts.push(`**${h.role === 'user' ? '用户' : '助手'}**：${h.content}\n`);
+    }
+  }
+
+  parts.push(`## 用户最新消息\n\n${message}\n`);
+  parts.push(`## 你的任务
+
+你是一个任务规划助手。用户正在描述一个他想做的任务。
+
+1. 如果需求模糊，提出具体问题帮用户理清
+2. 如果需求清晰，输出结构化计划
+
+如果需求已清晰，输出以下格式：
+
+### 任务名称
+（简洁的任务名）
+
+### 项目路径
+（建议路径）
+
+### 技术方案
+（技术选型和理由）
+
+### 实现步骤
+1. ...
+2. ...
+
+### 验收标准
+- ...
+
+用中文回复。`);
+
+  const tempDir = path.join(CONFIG.tasksDir, '_planning');
+  fs.mkdirSync(tempDir, { recursive: true });
+  const planFile = path.join(tempDir, `plan_${Date.now()}.md`);
+  fs.writeFileSync(planFile, parts.join('\n---\n\n'), 'utf-8');
+
+  const escapedBin = `"${CONFIG.claudeBin}"`;
+  const cmd = `${escapedBin} -p "读取 ${planFile} 并按照指令回复。直接输出，不要创建文件。" --max-turns 10`;
+
+  let output = '';
+  const proc = spawn(cmd, [], { cwd: tempDir, env: { ...process.env }, stdio: ['pipe', 'pipe', 'pipe'], shell: true });
+
+  proc.stdout.on('data', (d) => {
+    const text = stripAnsi(d.toString());
+    output += text;
+    ws.send(JSON.stringify({ type: 'plan_chat_stream', data: { text } }));
+  });
+
+  proc.on('close', () => {
+    try { fs.unlinkSync(planFile); } catch {}
+    ws.send(JSON.stringify({ type: 'plan_chat_done', data: { fullText: output } }));
+  });
+
+  proc.on('error', () => {
+    try { fs.unlinkSync(planFile); } catch {}
+    ws.send(JSON.stringify({ type: 'plan_chat_error', data: { message: '规划助手启动失败' } }));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 //  任务创建
 // ═══════════════════════════════════════════════════════════
 function createTask(data) {
   const id = genId();
   const taskDir = path.join(CONFIG.tasksDir, id);
   fs.mkdirSync(taskDir, { recursive: true });
-
   const projectPath = (data.projectPath || process.cwd()).replace(/\//g, '\\');
   fs.mkdirSync(projectPath, { recursive: true });
 
   const task = {
-    id, name: data.name || '未命名任务',
-    type: data.type || 'single',
-    roleId: data.roleId || null,
-    taskTypeId: data.taskTypeId || null,
-    projectPath, taskDir,
-    status: 'queued', phase: 0, phaseName: '等待中',
+    id, name: data.name || '未命名任务', type: data.type || 'single',
+    roleId: data.roleId || null, taskTypeId: data.taskTypeId || null,
+    projectPath, taskDir, status: 'queued', phase: 0, phaseName: '等待中',
     createdAt: Date.now(), startedAt: null, completedAt: null,
     logs: [], error: null, currentProcess: null, results: null,
-    plan: data.plan || '',
-    followUps: [],
-    parentId: data.parentId || null,
-    childIds: [],
-    retryCount: 0,  // ← 新增
+    plan: data.plan || '', followUps: [],
+    parentId: null, childIds: [], retryCount: 0,
   };
 
-  // 如果是并行拆分模式，创建子任务
   if (data.type === 'parallel' && data.subTasks && data.subTasks.length > 0) {
     task.childIds = [];
     for (const sub of data.subTasks) {
       const subId = genId();
       const subDir = path.join(CONFIG.tasksDir, subId);
       fs.mkdirSync(subDir, { recursive: true });
-
       const subTask = {
-        id: subId, name: sub.name || '子任务',
-        type: 'single', roleId: task.roleId, taskTypeId: task.taskTypeId,
-        projectPath, taskDir: subDir,
-        status: 'queued', phase: 0, phaseName: '等待中',
+        id: subId, name: sub.name || '子任务', type: 'single',
+        roleId: task.roleId, taskTypeId: task.taskTypeId,
+        projectPath, taskDir: subDir, status: 'queued', phase: 0, phaseName: '等待中',
         createdAt: Date.now(), startedAt: null, completedAt: null,
         logs: [], error: null, currentProcess: null, results: null,
         plan: sub.plan || '', followUps: [],
-        parentId: id, childIds: [],
-        retryCount: 0,
+        parentId: id, childIds: [], retryCount: 0,
       };
       tasks.set(subId, subTask);
       task.childIds.push(subId);
@@ -238,7 +352,6 @@ function createTask(data) {
   saveIndex();
   broadcast({ type: 'task_created', data: serializeTask(task) });
 
-  // 把主任务和子任务都加入队列
   if (task.childIds.length > 0) {
     for (const cid of task.childIds) queue.push(cid);
   }
@@ -249,46 +362,32 @@ function createTask(data) {
 // ═══════════════════════════════════════════════════════════
 //  执行引擎（并行 + 失败重试）
 // ═══════════════════════════════════════════════════════════
-
-const MAX_RETRY = 1; // 每个子任务最多重试 1 次
+const MAX_RETRY = 1;
 
 function tryExecuteNext() {
-  // 扫描队列，能执行的就执行，不能的放回去
   const pending = [];
-  let processed = 0;
-
   while (queue.length > 0) {
     const id = queue.shift();
     const task = tasks.get(id);
     if (!task) continue;
 
-    // 并行主任务：检查子任务是否全部结束
     if (task.type === 'parallel' && task.childIds && task.childIds.length > 0) {
       const allDone = task.childIds.every(cid => {
         const ct = tasks.get(cid);
         return ct && (ct.status === 'completed' || ct.status === 'failed' || ct.status === 'cancelled');
       });
-      if (!allDone) {
-        pending.push(id); // 子任务还没完，放回去
-        continue;
-      }
+      if (!allDone) { pending.push(id); continue; }
     }
 
     if (task.status === 'queued') {
       if (runningCount < CONFIG.maxConcurrent) {
         runningCount++;
-        processed++;
-        executeTask(task).finally(() => {
-          runningCount--;
-          tryExecuteNext();
-        });
+        executeTask(task).finally(() => { runningCount--; tryExecuteNext(); });
       } else {
-        pending.push(id); // 并发满了，放回去
+        pending.push(id);
       }
     }
   }
-
-  // 把还没处理的放回队列
   for (const id of pending) queue.push(id);
 }
 
@@ -299,60 +398,46 @@ async function executeTask(task) {
   broadcast({ type: 'task_updated', data: serializeTask(task) });
 
   try {
-    // ── 并行主任务：只做合并检查 ──
     if (task.type === 'parallel' && task.childIds && task.childIds.length > 0) {
-      task.phase = 1;
-      task.phaseName = '合并检查中';
+      task.phase = 1; task.phaseName = '合并检查中';
       broadcast({ type: 'task_updated', data: serializeTask(task) });
-
       appendLog(task, '═══════════════════════════════════════\n  合并子任务结果\n═══════════════════════════════════════\n\n', 'system');
 
-      // 收集子任务结果
       const childSummary = task.childIds.map(cid => {
         const ct = tasks.get(cid);
-        const status = ct.status === 'completed' ? '✓ 完成' : ct.status === 'failed' ? '✗ 失败' : '⚠ 取消';
-        const retry = ct.retryCount > 0 ? ` (重试${ct.retryCount}次)` : '';
-        return `- ${ct.name}: ${status}${retry}${ct.error ? ' → ' + ct.error : ''}`;
+        const s = ct.status === 'completed' ? '✓' : ct.status === 'failed' ? '✗' : '⚠';
+        const r = ct.retryCount > 0 ? ` (重试${ct.retryCount}次)` : '';
+        return `- ${ct.name}: ${s} ${ct.status}${r}${ct.error ? ' → ' + ct.error : ''}`;
       }).join('\n');
-
       appendLog(task, childSummary + '\n\n', 'system');
 
-      const mergePrompt = buildMergePrompt(task, childSummary);
       const planFile = path.join(task.projectPath, 'PLAN.md');
-      fs.writeFileSync(planFile, mergePrompt, 'utf-8');
-
-      await runClaude(task, '读取当前目录下的 PLAN.md 文件，按照其中的指令执行合并和检查。', 150);
+      fs.writeFileSync(planFile, buildMergePrompt(task, childSummary), 'utf-8');
+      await runClaude(task, '读取当前目录下的 PLAN.md，按指令执行合并和检查。', 150);
 
       if (task.status !== 'cancelled') {
         task.status = 'completed';
         task.results = collectResults(task);
         appendLog(task, '\n✓ 并行任务完成\n', 'system');
       }
-
     } else {
-      // ── 普通任务 / 子任务：自主执行 ──
-      task.phase = 1;
-      task.phaseName = '自主执行中';
+      task.phase = 1; task.phaseName = '自主执行中';
       broadcast({ type: 'task_updated', data: serializeTask(task) });
 
       const fullPrompt = buildPrompt(task);
       const planFile = path.join(task.projectPath, 'PLAN.md');
       fs.writeFileSync(planFile, fullPrompt, 'utf-8');
       appendLog(task, `[指令] ${planFile}\n\n`, 'system');
-
       appendLog(task, '═══════════════════════════════════════\n  开始自主执行\n═══════════════════════════════════════\n\n', 'system');
-      await runClaude(task, '读取当前目录下的 PLAN.md 文件，按照其中的指令逐步执行。直接开始，不要等待确认。', 300);
+      await runClaude(task, '读取当前目录下的 PLAN.md，按指令逐步执行。直接开始。', 300);
 
-      // 执行完成后检查结果
       if (task.status !== 'cancelled') {
-        task.phase = 2;
-        task.phaseName = '检查结果';
+        task.phase = 2; task.phaseName = '检查结果';
         broadcast({ type: 'task_updated', data: serializeTask(task) });
         appendLog(task, '\n═══════════════════════════════════════\n  检查结果\n═══════════════════════════════════════\n\n', 'system');
-
         const rp = path.join(task.projectPath, 'REPORT_PLAN.md');
         fs.writeFileSync(rp, buildReportPrompt(task), 'utf-8');
-        await runClaude(task, '读取当前目录下的 REPORT_PLAN.md 文件，按照其中的指令生成报告。', 80);
+        await runClaude(task, '读取当前目录下的 REPORT_PLAN.md，按指令生成报告。', 80);
         try { fs.unlinkSync(rp); } catch {}
       }
 
@@ -362,36 +447,22 @@ async function executeTask(task) {
         appendLog(task, '\n✓ 任务完成\n', 'system');
       }
     }
-
   } catch (err) {
-    // ── 失败处理：检查是否需要重试 ──
     if (task.status === 'cancelled') {
-      // 用户主动取消，不重试
+      // 用户取消
     } else if (task.parentId && (task.retryCount || 0) < MAX_RETRY) {
-      // 子任务失败：自动重试
       task.retryCount = (task.retryCount || 0) + 1;
-      appendLog(task, `\n⚠ 执行失败，自动重试 (${task.retryCount}/${MAX_RETRY})...\n\n`, 'system');
-
-      // 重置状态，加入重试上下文
+      appendLog(task, `\n⚠ 失败，自动重试 (${task.retryCount}/${MAX_RETRY})...\n\n`, 'system');
       task.status = 'queued';
-      task.phase = 0;
-      task.phaseName = '重试中';
-      task.startedAt = null;
-      task.completedAt = null;
-
-      // 把失败信息注入到 plan 中，让 Claude 知道上次为什么失败
-      task.plan = task.plan + `\n\n## 上次执行失败\n\n错误信息：${err.message}\n请特别注意避免同样的问题。`;
-
+      task.phase = 0; task.phaseName = '重试中';
+      task.startedAt = null; task.completedAt = null;
+      task.plan += `\n\n## 上次执行失败\n\n错误：${err.message}\n请避免同样的问题。`;
       saveIndex();
       broadcast({ type: 'task_updated', data: serializeTask(task) });
-
-      // 重新加入队列
       queue.push(task.id);
       tryExecuteNext();
-      return; // 不标记为最终失败
-
+      return;
     } else {
-      // 重试次数用完，或主任务失败
       task.status = 'failed';
       task.error = err.message;
       appendLog(task, `\n✗ 失败: ${err.message}\n`, 'system');
@@ -404,26 +475,40 @@ async function executeTask(task) {
   broadcast({ type: 'task_updated', data: serializeTask(task) });
 }
 
-
 // ═══════════════════════════════════════════════════════════
-//  Claude 执行器
+//  Claude 执行器（技能注入）
 // ═══════════════════════════════════════════════════════════
 function runClaude(task, shortPrompt, maxTurns) {
   return new Promise((resolve, reject) => {
-    const escapedBin = `"${CONFIG.claudeBin}"`;
-    const escapedPrompt = shortPrompt.replace(/"/g, '\\"');
-    const cmd = `${escapedBin} -p "${escapedPrompt}" --allowedTools "Read,Write,Edit,Bash,Glob,Grep,WebFetch" --max-turns ${maxTurns}`;
+    const baseTools = ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'WebFetch'];
+    if (task.roleId) {
+      const role = roles.find(r => r.id === task.roleId);
+      if (role && role.mcpServers) {
+        for (const s of role.mcpServers) {
+          if (s === 'github') baseTools.push('mcp__github__*');
+          if (s === 'mysql') baseTools.push('mcp__mysql__*');
+        }
+      }
+    }
+    const toolsStr = baseTools.join(',');
 
-    appendLog(task, `[执行] ${cmd}\n\n`, 'system');
+    let skillHint = '';
+    if (task.roleId) {
+      const role = roles.find(r => r.id === task.roleId);
+      if (role && role.skills && role.skills.length > 0) {
+        skillHint = '\n\n可用技能：' + role.skills.join(', ') + '\n请在合适的时候主动使用这些技能。';
+      }
+    }
+
+    const escapedBin = `"${CONFIG.claudeBin}"`;
+    const escapedPrompt = (shortPrompt + skillHint).replace(/"/g, '\\"');
+    const cmd = `${escapedBin} -p "${escapedPrompt}" --allowedTools "${toolsStr}" --max-turns ${maxTurns}`;
+
+    appendLog(task, `[执行] ${cmd.substring(0, 200)}...\n\n`, 'system');
 
     let proc;
     try {
-      proc = spawn(cmd, [], {
-        cwd: task.projectPath,
-        env: { ...process.env },
-        stdio: ['pipe', 'pipe', 'pipe'],
-        shell: true,
-      });
+      proc = spawn(cmd, [], { cwd: task.projectPath, env: { ...process.env }, stdio: ['pipe', 'pipe', 'pipe'], shell: true });
     } catch (err) {
       return reject(new Error(`启动失败: ${err.message}`));
     }
@@ -431,13 +516,11 @@ function runClaude(task, shortPrompt, maxTurns) {
     task.currentProcess = proc;
     proc.stdout.on('data', (d) => appendLog(task, stripAnsi(d.toString()), 'stdout'));
     proc.stderr.on('data', (d) => appendLog(task, stripAnsi(d.toString()), 'stderr'));
-
     proc.on('close', (code) => {
       task.currentProcess = null;
       if (task.status === 'cancelled' || code === 0) resolve();
       else reject(new Error(`退出码 ${code}`));
     });
-
     proc.on('error', (err) => {
       task.currentProcess = null;
       if (err.code === 'ENOENT') reject(new Error('找不到 claude'));
@@ -453,7 +536,7 @@ function getRoleContext(task) {
   if (!task.roleId) return '';
   const role = roles.find(r => r.id === task.roleId);
   if (!role || !role.persona) return '';
-  return `## 你的身份和工作方式\n\n${role.persona}\n`;
+  return `## 你的身份\n\n${role.persona}\n`;
 }
 
 function getTaskTypeContext(task) {
@@ -467,54 +550,72 @@ function getTaskTypeContext(task) {
 
 function buildPrompt(task) {
   const parts = [];
-  const roleCtx = getRoleContext(task);
-  if (roleCtx) parts.push(roleCtx);
-  const taskCtx = getTaskTypeContext(task);
-  if (taskCtx) parts.push(taskCtx);
+  const rc = getRoleContext(task);
+  if (rc) parts.push(rc);
+  const tc = getTaskTypeContext(task);
+  if (tc) parts.push(tc);
 
-  parts.push(`## 工作目录\n\n${task.projectPath}\n所有文件都在这个目录下创建和操作。\n`);
-
+  parts.push(`## 工作目录\n\n${task.projectPath}\n所有文件都在这个目录下。\n`);
   parts.push(`## 任务需求\n\n${task.plan}\n`);
+
+  // 技能指南
+  if (task.roleId) {
+    const role = roles.find(r => r.id === task.roleId);
+    if (role && role.skills && role.skills.length > 0) {
+      let guide = '## 技能指南\n\n你有以下技能，请在合适时主动使用：\n';
+      for (const s of role.skills) {
+        if (s.includes('brainstorming')) guide += '- brainstorming：动手前先头脑风暴分析方案\n';
+        else if (s.includes('writing-plans') || s.includes('write-plan')) guide += '- writing-plans：先编写详细开发计划\n';
+        else if (s.includes('executing-plans')) guide += '- executing-plans：按计划逐步执行\n';
+        else if (s.includes('subagent')) guide += '- subagent-driven：复杂任务拆分子任务分别执行\n';
+        else if (s.includes('code-review')) guide += '- code-review：完成后做代码审查\n';
+        else if (s.includes('exa-search')) guide += '- exa-search：搜索最新信息\n';
+        else if (s.includes('browser')) guide += '- browser-automation：需要时用浏览器抓取网页\n';
+        else if (s.includes('python')) guide += '- python-review：Python 代码专项审查\n';
+        else if (s.includes('docs-consistency')) guide += '- docs-consistency：检查文档一致性\n';
+      }
+      parts.push(guide);
+    }
+  }
 
   parts.push(`## 执行规则（必须遵守）
 
-1. 仔细阅读上面的「任务需求」，理解用户到底要什么
-2. 如果需求要求创建新子目录，创建后在那个目录里工作
-3. 如果需要获取外部信息，使用 WebFetch 抓取真实网页
-4. 自主完成所有步骤，不要停下来问用户确认
-5. 遇到错误自行修复，不要放弃
+1. 仔细阅读「任务需求」，理解用户到底要什么
+2. 如果要求创建新子目录，创建后在里面工作
+3. 需要外部信息就用 WebFetch 抓取
+4. 自主完成，不要等确认
+5. 遇到错误自行修复
 6. 需要安装依赖就安装
-7. 确保最终产出物是真实可用的
-8. 完成后在工作目录下创建 docs/ 文件夹，生成：
-   - docs/completed.md — 完成了什么（基于实际文件，不要编造）
-   - docs/issues.md — 遇到的问题和解决方案
+7. 确保产出物真实可用
+8. 完成后在 docs/ 下生成：
+   - docs/completed.md — 完成了什么
+   - docs/issues.md — 遇到的问题
    - docs/remaining.md — 遗留问题
-
-重要：不要编造内容。没有真正实现的功能不要写在报告里。
-重要：每个需求都要实际执行，不是写在报告里就算完成。`);
+9. 不要编造内容。没实现的功能不要写在报告里。
+10. 每个需求都要实际执行。`);
 
   return parts.join('\n---\n\n');
 }
 
 function buildReportPrompt(task) {
-  return `你在项目 ${task.projectPath} 中刚完成了一些工作。
+  return `你在 ${task.projectPath} 中刚完成了一些工作。
 
-请检查项目目录下的实际文件，确认 docs/ 下的三份报告是否真实准确：
+检查 docs/ 下的报告是否真实准确：
 1. docs/completed.md
 2. docs/issues.md
 3. docs/remaining.md
 
-如果报告不存在或内容与实际代码不符，请基于实际文件重新生成。
-如果已经准确，直接确认即可。不要编造内容。`;
+如果不存在或与实际不符，基于实际文件重新生成。
+如果已经准确，直接确认。不要编造。`;
 }
 
 function buildMergePrompt(task, childSummary) {
-  const roleCtx = getRoleContext(task);
-  return `${roleCtx ? roleCtx + '\n---\n\n' : ''}## 背景
+  const rc = getRoleContext(task);
+  return `${rc ? rc + '\n---\n\n' : ''}## 背景
 
-你之前将一个大任务拆分成了多个子任务并行执行。现在所有子任务已完成，你需要合并结果。
+你将大任务拆分为多个子任务并行执行，现在所有子任务已完成。
 
-## 子任务执行情况
+## 子任务结果
 
 ${childSummary}
 
@@ -524,24 +625,19 @@ ${task.projectPath}
 
 ## 合并规则
 
-1. 检查所有子任务的产出文件
-2. 如果有冲突，以功能完整为准进行合并
-3. 确保合并后的项目整体可运行
-4. 生成 docs/completed.md — 总结所有完成的工作
-5. 生成 docs/issues.md — 汇总所有问题
-6. 生成 docs/remaining.md — 汇总遗留问题
-
-直接执行，不要等待确认。`;
+1. 检查所有子任务产出文件
+2. 如有冲突，以功能完整为准合并
+3. 确保合并后项目可运行
+4. 生成 docs/completed.md、docs/issues.md、docs/remaining.md
+5. 直接执行`;
 }
 
 // ── 迭代 ──
 function handleFollowUp(data) {
   const task = tasks.get(data.taskId);
   if (!task || task.status === 'running') return;
-
   task.followUps = task.followUps || [];
   task.followUps.push({ prompt: data.prompt, time: Date.now() });
-
   task.status = 'running';
   task.phaseName = '迭代中';
   task.completedAt = null;
@@ -549,15 +645,13 @@ function handleFollowUp(data) {
   broadcast({ type: 'task_updated', data: serializeTask(task) });
 
   const history = (task.followUps || []).map((f, i) => `- 第${i + 1}次：${f.prompt}`).join('\n');
-  const roleCtx = getRoleContext(task);
+  const rc = getRoleContext(task);
+  const content = `${rc ? rc + '\n---\n\n' : ''}## 背景\n\n你之前在 ${task.projectPath} 中完成了工作。\n\n${history ? `## 追加记录\n\n${history}\n\n` : ''}## 本次需求\n\n${data.prompt}\n\n## 执行规则\n\n1. 先查看现有文件\n2. 执行新需求\n3. 不破坏已有功能\n4. 更新 docs/ 报告\n5. 直接执行`;
 
-  const content = `${roleCtx ? roleCtx + '\n---\n\n' : ''}## 背景\n\n你之前在项目 ${task.projectPath} 中已完成了一些工作。\n\n${history ? `## 追加记录\n\n${history}\n\n` : ''}## 本次需求\n\n${data.prompt}\n\n## 执行规则\n\n1. 先查看项目现有文件，了解当前状态\n2. 执行上面的新需求\n3. 不要破坏已有功能\n4. 更新 docs/ 下的报告\n5. 直接执行，不要等待确认`;
-
-  const planFile = path.join(task.projectPath, 'PLAN.md');
-  fs.writeFileSync(planFile, content, 'utf-8');
+  fs.writeFileSync(path.join(task.projectPath, 'PLAN.md'), content, 'utf-8');
 
   runningCount++;
-  runClaude(task, '读取当前目录下的 PLAN.md 文件，按照其中的指令执行。', 200)
+  runClaude(task, '读取当前目录下的 PLAN.md，按指令执行。', 200)
       .then(() => { if (task.status !== 'cancelled') { task.status = 'completed'; task.results = collectResults(task); } })
       .catch(err => { if (task.status !== 'cancelled') { task.status = 'failed'; task.error = err.message; } })
       .finally(() => {
@@ -577,12 +671,9 @@ function cancelTask(id) {
   const task = tasks.get(id);
   if (!task || task.status === 'completed' || task.status === 'failed') return;
   task.status = 'cancelled';
-  // 取消子任务
   for (const cid of (task.childIds || [])) {
     const ct = tasks.get(cid);
-    if (ct && (ct.status === 'running' || ct.status === 'queued')) {
-      cancelTask(cid);
-    }
+    if (ct && (ct.status === 'running' || ct.status === 'queued')) cancelTask(cid);
   }
   if (task.currentProcess) { try { task.currentProcess.kill('SIGTERM'); } catch {} task.currentProcess = null; }
   task.completedAt = Date.now();
@@ -594,10 +685,7 @@ function cancelTask(id) {
 function deleteTask(id) {
   const task = tasks.get(id);
   if (!task) return;
-  // 删除子任务
-  for (const cid of (task.childIds || [])) {
-    tasks.delete(cid);
-  }
+  for (const cid of (task.childIds || [])) tasks.delete(cid);
   cancelTask(id);
   tasks.delete(id);
   saveIndex();
@@ -630,6 +718,7 @@ app.get('/api/file', (req, res) => {
 });
 
 loadRoles();
+loadTaskTemplates();
 loadIndex();
 
 server.listen(CONFIG.port, CONFIG.host, () => {
@@ -642,7 +731,7 @@ server.listen(CONFIG.port, CONFIG.host, () => {
   }
   console.log('');
   console.log('  ┌──────────────────────────────────────┐');
-  console.log('  │       CLAUDE HUB v4 · Ready          │');
+  console.log('  │       CLAUDE HUB v5 · Ready          │');
   console.log('  ├──────────────────────────────────────┤');
   console.log(`  │  Local:   http://localhost:${CONFIG.port}      │`);
   for (const ip of ips) console.log(`  │  Network: http://${ip}:${CONFIG.port} │`);

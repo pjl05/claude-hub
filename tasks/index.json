@@ -13,13 +13,14 @@
     "completedAt": 1777102890577,
     "error": null,
     "results": null,
-    "followUps": []
+    "followUps": [],
+    "parentId": null,
+    "childIds": []
   },
   {
     "id": "6f11fa3cb858eefc",
     "name": "获取ai最新的资讯",
     "type": "auto",
-    "templateId": null,
     "projectPath": "D:\\person_ai_projects",
     "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\6f11fa3cb858eefc",
     "status": "completed",
@@ -56,13 +57,14 @@
         "prompt": "你完全没有按照我的想法啊 我需要的是你给我查阅最近的ai资讯 然后给我整理输出",
         "time": 1777107576900
       }
-    ]
+    ],
+    "parentId": null,
+    "childIds": []
   },
   {
     "id": "7dc2133a98c2f8e4",
     "name": "计划书测试",
     "type": "template",
-    "templateId": "writing",
     "projectPath": "D:\\person_ai_projects",
     "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\7dc2133a98c2f8e4",
     "status": "completed",
@@ -94,13 +96,14 @@
         }
       ]
     },
-    "followUps": []
+    "followUps": [],
+    "parentId": null,
+    "childIds": []
   },
   {
     "id": "760c1549a35974e2",
     "name": "文档写作",
     "type": "template",
-    "templateId": "writing",
     "projectPath": "D:\\person_ai_projects",
     "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\760c1549a35974e2",
     "status": "completed",
@@ -150,6 +153,123 @@
         }
       ]
     },
-    "followUps": []
+    "followUps": [],
+    "parentId": null,
+    "childIds": []
+  },
+  {
+    "id": "6c11b5d3e34a9990",
+    "name": "个人任务管理工具再开发",
+    "type": "single",
+    "roleId": "developer",
+    "taskTypeId": "web-fullstack",
+    "projectPath": "D:\\person_ai_projects\\test",
+    "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\6c11b5d3e34a9990",
+    "status": "completed",
+    "phase": 2,
+    "phaseName": "迭代中",
+    "createdAt": 1777127666658,
+    "startedAt": 1777127666659,
+    "completedAt": 1777128603645,
+    "error": null,
+    "results": {
+      "files": [
+        {
+          "name": "development-plan.md",
+          "path": "D:\\person_ai_projects\\test\\docs\\development-plan.md",
+          "size": 7277,
+          "modified": 1777092015708.202
+        },
+        {
+          "name": "future-phases.md",
+          "path": "D:\\person_ai_projects\\test\\docs\\future-phases.md",
+          "size": 9065,
+          "modified": 1777128592478.3938
+        },
+        {
+          "name": "progress.md",
+          "path": "D:\\person_ai_projects\\test\\docs\\progress.md",
+          "size": 1286,
+          "modified": 1777092279084.5254
+        },
+        {
+          "name": "report-completed.md",
+          "path": "D:\\person_ai_projects\\test\\docs\\report-completed.md",
+          "size": 2281,
+          "modified": 1777127804940.3665
+        },
+        {
+          "name": "report-issues.md",
+          "path": "D:\\person_ai_projects\\test\\docs\\report-issues.md",
+          "size": 953,
+          "modified": 1777127869076.9243
+        },
+        {
+          "name": "report-remaining.md",
+          "path": "D:\\person_ai_projects\\test\\docs\\report-remaining.md",
+          "size": 1443,
+          "modified": 1777127924373.7805
+        }
+      ]
+    },
+    "followUps": [
+      {
+        "prompt": "那你把后期可添加的功能给我生成一份不同阶段的文档，后面我要根据这些文档进行开发。",
+        "time": 1777128142067
+      },
+      {
+        "prompt": "那你现在帮我逐步实施每个阶段的开发。",
+        "time": 1777128404788
+      }
+    ],
+    "parentId": null,
+    "childIds": []
+  },
+  {
+    "id": "72c4f7589b1aeb4a",
+    "name": "测试教程",
+    "type": "single",
+    "roleId": "writer",
+    "taskTypeId": "tech-doc",
+    "projectPath": "D:\\person_ai_projects\\test_jiaocheng",
+    "taskDir": "D:\\person_ai_projects\\claude-hub\\tasks\\72c4f7589b1aeb4a",
+    "status": "completed",
+    "phase": 2,
+    "phaseName": "检查结果",
+    "createdAt": 1777127821244,
+    "startedAt": 1777127821244,
+    "completedAt": 1777128167146,
+    "error": null,
+    "results": {
+      "files": [
+        {
+          "name": "completed.md",
+          "path": "D:\\person_ai_projects\\test_jiaocheng\\docs\\completed.md",
+          "size": 970,
+          "modified": 1777128078428.8281
+        },
+        {
+          "name": "issues.md",
+          "path": "D:\\person_ai_projects\\test_jiaocheng\\docs\\issues.md",
+          "size": 1278,
+          "modified": 1777128096912.4834
+        },
+        {
+          "name": "RAG 技术文档.md",
+          "path": "D:\\person_ai_projects\\test_jiaocheng\\docs\\RAG 技术文档.md",
+          "size": 8730,
+          "modified": 1777128023832.868
+        },
+        {
+          "name": "remaining.md",
+          "path": "D:\\person_ai_projects\\test_jiaocheng\\docs\\remaining.md",
+          "size": 776,
+          "modified": 1777128097378.3298
+        }
+      ]
+    },
+    "followUps": [],
+    "parentId": null,
+    "childIds": []
   }
 ]
