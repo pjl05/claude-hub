@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
     <style>
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        :root{--bg:#07070d;--bg-s:#0a0a14;--sf:#0f0f1a;--sf-h:#151524;--sf-a:#1b1b30;--bd:#1a1a2e;--bd-l:#262640;--ac:#22d3ee;--ac-d:#0e7490;--ac-g:rgba(34,211,238,.1);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--t:#e2e8f0;--t2:#94a3b8;--t3:#475569;--fd:'Syne',sans-serif;--fm:'DM Mono',monospace;--hh:54px;--sw:290px}
+        :root{--bg:#07070d;--bg-s:#0a0a14;--sf:#0f0f1a;--sf-h:#151524;--sf-a:#1b1b30;--bd:#1a1a2e;--bd-l:#262640;--ac:#22d3ee;--ac-d:#0e7490;--ac-g:rgba(34,211,238,.1);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--t:#e2e8f0;--t2:#b0bec5;--t3:#8899aa;--fd:'Syne',sans-serif;--fm:'DM Mono',monospace;--hh:54px;--sw:290px}
         html,body{height:100%;font-family:var(--fm);font-size:13px;background:var(--bg);color:var(--t);-webkit-font-smoothing:antialiased;overflow:hidden}
         #app{display:grid;grid-template-rows:var(--hh) 1fr;grid-template-columns:var(--sw) 1fr;grid-template-areas:"h h""s m";height:100vh}
         .header{grid-area:h}.sidebar{grid-area:s}.main{grid-area:m}
@@ -18,7 +18,7 @@
         .menu-btn{display:none;background:none;border:none;color:var(--t);font-size:20px;cursor:pointer;padding:4px}
         .logo{font-family:var(--fd);font-weight:700;font-size:1.05rem;letter-spacing:.1em}.logo span{color:var(--ac)}
         .header-r{display:flex;align-items:center;gap:8px;font-size:.6875rem;color:var(--t2)}
-        .hdr-btn{padding:4px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t2);font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
+        .hdr-btn{padding:4px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t);font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
         .hdr-btn:hover{background:var(--sf-h);color:var(--t)}
         .cdot{width:7px;height:7px;border-radius:50%;background:var(--err);transition:all .3s}.cdot.on{background:var(--ok);box-shadow:0 0 8px rgba(52,211,153,.5)}
         .tbadge{padding:2px 8px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;font-size:.625rem}
@@ -43,8 +43,8 @@
         .badge.running{background:rgba(34,211,238,.12);color:var(--ac)}.badge.completed{background:rgba(52,211,153,.12);color:var(--ok)}.badge.failed{background:rgba(248,113,113,.12);color:var(--err)}.badge.queued{background:rgba(71,85,105,.15);color:var(--t3)}.badge.cancelled{background:rgba(251,191,36,.12);color:var(--warn)}
         .tinfo-phase{font-size:.6875rem;color:var(--t2)}.tinfo-dur{font-size:.6875rem;color:var(--t3);margin-left:auto}
         .tinfo-acts{display:flex;gap:6px}
-        .btn-i{padding:5px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t2);font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
-        .btn-i:hover{background:var(--sf-h);color:var(--t)}.btn-i.danger:hover{background:rgba(248,113,113,.1);color:var(--err);border-color:var(--err)}
+        .btn-i{padding:5px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t);font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
+        .btn-i:hover{background:var(--sf-h)}.btn-i.danger:hover{background:rgba(248,113,113,.1);color:var(--err);border-color:var(--err)}
         .log-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
         .log-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 20px;background:var(--sf);border-bottom:1px solid var(--bd);font-size:.6875rem;color:var(--t2)}
         .log-ctrls{display:flex;gap:6px}
@@ -71,42 +71,29 @@
         .fu-item{padding:6px 10px;margin-bottom:4px;background:var(--bg);border-radius:4px;border-left:2px solid var(--ac-d);font-size:.75rem;color:var(--t2)}
         .children-wrap{padding:8px 20px;border-bottom:1px solid var(--bd);background:rgba(10,10,20,.5)}
         .child-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.75rem;color:var(--t2)}.child-item .tdot{width:5px;height:5px}
-
-        /* Role & Template Chips */
         .chip-bar{display:flex;gap:6px;flex-wrap:wrap}
         .chip{padding:6px 14px;background:var(--bg);border:2px solid var(--bd);border-radius:20px;cursor:pointer;font-size:.75rem;transition:all .15s;display:flex;align-items:center;gap:5px}
         .chip:hover{border-color:var(--bd-l);background:var(--sf)}.chip.active{border-color:var(--ac);background:var(--ac-g);color:var(--ac)}
-
-        /* Role Preview */
         .role-preview{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:14px;animation:mIn .15s ease}
         .role-preview pre{padding:10px;background:var(--sf);border:1px solid var(--bd);border-radius:6px;font-size:.7rem;color:var(--t2);line-height:1.6;max-height:120px;overflow-y:auto;white-space:pre-wrap;margin:10px 0}
-
-        /* Task Type Grid */
         .tt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
         .tt-card{padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:8px;cursor:pointer;transition:all .15s;text-align:center}
         .tt-card:hover{border-color:var(--bd-l);background:var(--sf)}.tt-card.active{border-color:var(--ac);background:var(--ac-g)}
         .tt-icon{font-size:1.4rem;margin-bottom:4px}.tt-name{font-size:.75rem;font-weight:500}.tt-desc{font-size:.6rem;color:var(--t3);margin-top:2px}
-
-        /* Parallel */
         .parallel-section{margin-top:16px;padding:14px;background:var(--bg);border:1px solid var(--bd);border-radius:8px}
         .parallel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
         .parallel-header span{font-size:.75rem;color:var(--t2)}
         .sub-task-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
         .sub-task-row input{flex:1;padding:7px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;color:var(--t);font-family:var(--fm);font-size:.75rem;outline:none}
         .sub-task-row input:focus{border-color:var(--ac)}
-
-        /* Plan Chat */
         .plan-chat{display:flex;flex-direction:column;height:360px;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
         .plan-chat-head{padding:8px 14px;background:var(--sf);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
         .plan-chat-msgs{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:4px;background:var(--bg)}
         .plan-chat-foot{padding:8px 14px;background:var(--sf);border-top:1px solid var(--bd);display:flex;gap:8px}
-
-        /* Shared small button */
-        .sm-btn{padding:4px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s}
+        .sm-btn{padding:4px 10px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;font-size:.6875rem;cursor:pointer;font-family:var(--fm);transition:all .12s;color:var(--t)}
         .sm-btn:hover{background:var(--sf-h)}
         .sm-btn.primary{background:var(--ac);color:#000;border-color:var(--ac)}
         .sm-btn.danger{color:var(--err)}.sm-btn.danger:hover{background:rgba(248,113,113,.1)}
-
         .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(3px)}
         .modal{background:var(--sf);border:1px solid var(--bd);border-radius:10px;width:620px;max-width:92vw;max-height:90vh;overflow-y:auto;animation:mIn .2s ease}
         .modal.wide{width:820px}
@@ -116,7 +103,7 @@
         .modal-head-r{display:flex;gap:8px;align-items:center}
         .mx{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px}.mx:hover{color:var(--t)}
         form{padding:22px}
-        .fg{margin-bottom:14px}.fg label{display:block;margin-bottom:5px;font-size:.6875rem;color:var(--t2);font-weight:500}
+        .fg{margin-bottom:14px}.fg label{display:block;margin-bottom:5px;font-size:.6875rem;color:var(--t2);font-weight:600}
         .fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--t);font-family:var(--fm);font-size:.8rem;outline:none;transition:border-color .2s}
         .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-g)}
         .fg textarea{resize:vertical;min-height:120px;line-height:1.6}
@@ -125,12 +112,10 @@
         .btn-p:hover{background:#06b6d4}
         .btn-s{padding:9px 22px;background:var(--sf-h);color:var(--t2);border:1px solid var(--bd);border-radius:5px;font-family:var(--fm);font-size:.8rem;cursor:pointer}
         .btn-s:hover{background:var(--sf-a);color:var(--t)}
-
         .role-editor{padding:22px}
         .tt-edit-row{display:flex;gap:6px;margin-bottom:8px;align-items:flex-start}
         .tt-edit-row input,.tt-edit-row textarea{padding:7px 10px;background:var(--bg);border:1px solid var(--bd);border-radius:4px;color:var(--t);font-family:var(--fm);font-size:.75rem;outline:none}
         .tt-edit-row input:focus,.tt-edit-row textarea:focus{border-color:var(--ac)}
-
         .file-content{padding:18px 22px;background:#040408;color:var(--t2);font-family:var(--fm);font-size:.8rem;line-height:1.7;overflow:auto;max-height:60vh;white-space:pre-wrap;word-break:break-word}
         .toast-box{position:fixed;bottom:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:6px}
         .toast{padding:10px 16px;background:var(--sf);border:1px solid var(--bd);border-radius:6px;font-size:.8rem;animation:tIn .3s ease}
@@ -139,6 +124,30 @@
         .reconn{position:fixed;top:var(--hh);left:0;right:0;padding:6px;background:var(--err);color:#fff;text-align:center;font-size:.6875rem;z-index:150}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd-l);border-radius:3px}
         .sidebar-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
+        .memory-panel{flex-shrink:0;border-top:1px solid var(--bd)}
+        .memory-bar{padding:6px 20px;background:var(--sf);border-bottom:1px solid var(--bd);font-size:.6875rem;color:var(--t2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+        .memory-bar:hover{background:var(--sf-h)}
+        .memory-body{max-height:200px;overflow-y:auto;padding:10px 20px;background:rgba(10,10,20,.3)}
+        .memory-section{margin-bottom:10px}
+        .memory-section-title{font-size:.625rem;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+        .memory-tags{display:flex;flex-wrap:wrap;gap:4px}
+        .memory-tag{padding:2px 8px;border-radius:4px;font-size:.625rem}
+        .memory-tag.tech{background:rgba(34,211,238,.1);color:var(--ac)}
+        .memory-tag.pattern{background:rgba(52,211,153,.1);color:var(--ok)}
+        .memory-tag.decision{background:rgba(251,191,36,.1);color:var(--warn)}
+        .memory-task{padding:6px 10px;margin-bottom:4px;background:var(--bg);border-radius:4px;border-left:2px solid var(--ac-d);font-size:.7rem}
+        .memory-task-name{font-weight:500;margin-bottom:2px}
+        .memory-task-summary{color:var(--t3);font-size:.625rem}
+        .memory-empty{font-size:.7rem;color:var(--t3);text-align:center;padding:10px}
+        .suggest-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;min-height:0;transition:all .2s}
+        .suggest-chip{padding:5px 12px;background:rgba(34,211,238,.06);border:1px dashed var(--ac-d);border-radius:16px;cursor:pointer;font-size:.6875rem;transition:all .15s;display:flex;align-items:center;gap:4px}
+        .suggest-chip:hover{background:var(--ac-g);border-style:solid}
+        .suggest-chip .score{font-size:.5rem;color:var(--t3);background:var(--sf);padding:1px 5px;border-radius:8px}
+        .memory-indicator{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(34,211,238,.05);border:1px solid var(--ac-d);border-radius:6px;margin-top:4px;font-size:.6875rem;color:var(--ac);cursor:pointer;transition:all .15s}
+        .memory-indicator:hover{background:var(--ac-g)}
+        .memory-indicator .mi-count{font-weight:600}
+        .skill-row{display:flex;gap:6px;margin-bottom:4px;align-items:center}
+        .skill-row input{flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--bd);border-radius:4px;color:var(--t);font-family:var(--fm);font-size:.75rem;outline:none}
         @media(max-width:768px){
             #app{grid-template-columns:1fr;grid-template-areas:"h""m"}.menu-btn{display:block}
             .sidebar{position:fixed;left:-300px;top:var(--hh);bottom:0;width:var(--sw);z-index:50;transition:left .25s ease}.sidebar.open{left:0}.sidebar-ov.open{display:block}
@@ -177,6 +186,19 @@
         <div class="task-view" id="taskView" style="display:none">
             <div class="tinfo" id="tinfo"></div>
             <div id="childrenWrap" class="children-wrap" style="display:none"></div>
+
+            <!-- 项目记忆面板 -->
+            <div class="memory-panel" id="memoryPanel" style="display:none">
+                <div class="memory-bar" onclick="toggleMemory()">
+                    <span>&#x1F4E6; 项目记忆 <span id="memoryCount"></span></span>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <button class="sm-btn danger" onclick="event.stopPropagation();clearMemory()" style="font-size:.6rem">清除</button>
+                        <span id="memoryToggle">&#9660;</span>
+                    </div>
+                </div>
+                <div class="memory-body" id="memoryBody"></div>
+            </div>
+
             <div class="log-wrap">
                 <div class="log-bar"><span>实时日志</span><div class="log-ctrls"><button id="autoScrollBtn" class="on" onclick="toggleScroll()">自动滚动</button><button onclick="copyLogs()">复制日志</button></div></div>
                 <div class="log-viewer" id="logViewer"></div>
@@ -196,54 +218,49 @@
         </div>
     </main>
 
-    <!-- ═══ New Task Modal ═══ -->
+    <!-- New Task Modal -->
     <div class="modal-bg" id="newModal" style="display:none" onclick="if(event.target===this)hideModal('newModal')">
         <div class="modal wide">
             <div class="modal-head"><h2>新建任务</h2><button class="mx" onclick="hideModal('newModal')">&#10005;</button></div>
             <form id="taskForm" onsubmit="submitTask(event)">
-
-                <!-- 任务模板 -->
                 <div class="fg" id="tplSection" style="display:none">
                     <label>快速模板</label>
                     <div class="chip-bar" id="tplBar"></div>
                 </div>
-
-                <!-- 角色选择 -->
                 <div class="fg">
                     <label>选择角色</label>
+                    <div class="suggest-bar" id="suggestBar"></div>
                     <div class="chip-bar" id="roleBar"></div>
                 </div>
-
-                <!-- 角色预览 -->
                 <div class="fg" id="rolePreview" style="display:none"></div>
-
-                <!-- 任务类型 -->
                 <div class="fg" id="taskTypeSection" style="display:none">
                     <label>任务类型</label>
                     <div class="tt-grid" id="ttGrid"></div>
                 </div>
-
-                <!-- 基本信息 -->
                 <div class="fg"><label>任务名称</label><input type="text" id="fName" placeholder="例如：用户管理后台" required></div>
-                <div class="fg"><label>项目路径</label><input type="text" id="fPath" placeholder="D:\projects\my-app" required></div>
-
-                <!-- 任务描述 + AI规划 -->
+                <div class="fg">
+                    <label>项目路径</label>
+                    <input type="text" id="fPath" placeholder="D:\projects\my-app" required oninput="onPathChange()">
+                    <div class="memory-indicator" id="pathMemoryIndicator" style="display:none" onclick="showPathMemory()">
+                        <span>&#x1F4E6;</span>
+                        <span>此项目有 <span class="mi-count" id="pathMemoryCount">0</span> 条历史记录</span>
+                        <span style="margin-left:auto;font-size:.6rem">点击查看</span>
+                    </div>
+                </div>
                 <div class="fg">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
                         <label style="margin:0" id="planLabel">任务描述</label>
-                        <button type="button" class="sm-btn" style="color:#fff !important;" onclick="togglePlanChat()">🤖 AI 规划助手</button>
-                        <button type="button" class="sm-btn" style="color:#fff !important;" onclick="saveAsTemplate()">💾 存为模板</button>
+                        <button type="button" class="sm-btn" onclick="togglePlanChat()">&#x1F916; AI 规划助手</button>
+                        <button type="button" class="sm-btn" onclick="saveAsTemplate()">&#x1F4BE; 存为模板</button>
                     </div>
-                    <textarea id="fPlan" placeholder="描述你的需求...或点击 AI 规划助手帮你整理"></textarea>
+                    <textarea id="fPlan" placeholder="描述你的需求...或点击 AI 规划助手帮你整理" oninput="onPlanChange()"></textarea>
                 </div>
-
-                <!-- AI 规划聊天面板 -->
                 <div id="planChatPanel" style="display:none" class="fg">
                     <div class="plan-chat">
                         <div class="plan-chat-head">
-                            <span style="font-size:.75rem;color:var(--t2)">🤖 AI 规划助手</span>
+                            <span style="font-size:.75rem;color:var(--t2)">&#x1F916; AI 规划助手</span>
                             <div style="display:flex;gap:6px">
-                                <button type="button" class="sm-btn primary" onclick="usePlanResult()">📋 采用此计划</button>
+                                <button type="button" class="sm-btn primary" onclick="usePlanResult()">&#x1F4CB; 采用此计划</button>
                                 <button type="button" class="mx" onclick="togglePlanChat()" style="font-size:14px">&#10005;</button>
                             </div>
                         </div>
@@ -254,8 +271,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 并行子任务 -->
                 <div class="fg" id="parallelSection" style="display:none">
                     <div class="parallel-section">
                         <div class="parallel-header">
@@ -265,7 +280,6 @@
                         <div id="subTaskList"></div>
                     </div>
                 </div>
-
                 <div class="fbtns">
                     <button type="button" class="btn-s" onclick="hideModal('newModal')">取消</button>
                     <button type="submit" class="btn-p">创建并执行</button>
@@ -274,7 +288,7 @@
         </div>
     </div>
 
-    <!-- ═══ Role Editor Modal ═══ -->
+    <!-- Role Editor Modal -->
     <div class="modal-bg" id="roleEditorModal" style="display:none" onclick="if(event.target===this)hideModal('roleEditorModal')">
         <div class="modal wide">
             <div class="modal-head"><h2>&#9881; 角色管理</h2><div class="modal-head-r"><button class="btn-i" onclick="saveRoleFromEditor()">保存</button><button class="mx" onclick="hideModal('roleEditorModal')">&#10005;</button></div></div>
@@ -282,7 +296,7 @@
                 <div class="fg"><label>选择角色</label><select id="roleEditorSelect" onchange="loadRoleForEdit()"><option value="">-- 选择 --</option><option value="_new">+ 新建角色</option></select></div>
                 <div class="fg"><label>角色 ID</label><input type="text" id="reId" placeholder="my-role"></div>
                 <div class="fg"><label>名称</label><input type="text" id="reName" placeholder="角色名称"></div>
-                <div class="fg"><label>图标</label><input type="text" id="reIcon" placeholder="🎯" style="width:80px"></div>
+                <div class="fg"><label>图标</label><input type="text" id="reIcon" placeholder="&#x1F3AF;" style="width:80px"></div>
                 <div class="fg"><label>描述</label><input type="text" id="reDesc" placeholder="角色描述"></div>
                 <div class="fg"><label>角色设定（Persona）</label><textarea id="rePersona" style="min-height:120px" placeholder="定义身份、能力、工作习惯..."></textarea></div>
                 <div class="fg">
@@ -290,15 +304,33 @@
                     <button type="button" class="sm-btn" onclick="addRoleTaskType()" style="margin-bottom:8px">+ 添加任务类型</button>
                     <div id="reTaskTypes"></div>
                 </div>
+                <div class="fg">
+                    <label>Skills（技能）</label>
+                    <button type="button" class="sm-btn" onclick="addSkillRow()" style="margin-bottom:8px">+ 添加技能</button>
+                    <div id="reSkills"></div>
+                </div>
+                <div class="fg">
+                    <label>MCP Servers</label>
+                    <button type="button" class="sm-btn" onclick="addMcpRow()" style="margin-bottom:8px">+ 添加 MCP</button>
+                    <div id="reMcp"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ═══ File Viewer Modal ═══ -->
+    <!-- File Viewer Modal -->
     <div class="modal-bg" id="fileModal" style="display:none" onclick="if(event.target===this)hideModal('fileModal')">
         <div class="modal wide">
             <div class="modal-head"><h2 id="fileTitle">文件</h2><div class="modal-head-r"><button class="btn-i" onclick="copyFile()">复制</button><button class="mx" onclick="hideModal('fileModal')">&#10005;</button></div></div>
             <pre class="file-content" id="fileContent"></pre>
+        </div>
+    </div>
+
+    <!-- 项目记忆查看 Modal -->
+    <div class="modal-bg" id="memoryModal" style="display:none" onclick="if(event.target===this)hideModal('memoryModal')">
+        <div class="modal">
+            <div class="modal-head"><h2>&#x1F4E6; 项目记忆</h2><div class="modal-head-r"><button class="btn-i danger" onclick="clearMemoryFromModal()">清除记忆</button><button class="mx" onclick="hideModal('memoryModal')">&#10005;</button></div></div>
+            <div id="memoryModalBody" style="padding:20px"></div>
         </div>
     </div>
 </div>
@@ -307,14 +339,9 @@
 <div class="reconn" id="reconnBanner" style="display:none">连接断开，正在重连...</div>
 
 <script>
-    // ══════════════════════════════════════════════════════════
-    //  State
-    // ══════════════════════════════════════════════════════════
     let ws=null,tasks=[],roles=[],taskTemplates=[],selectedId=null,autoScroll=true,reconnTimer=null,curFileContent='',resultsExpanded=true,selectedRole=null,selectedTaskType=null,subTaskCount=0,planChatHistory=[],planChatStreaming=false;
+    let currentMemory=null,memoryExpanded=true,pathMemoryTimer=null,suggestTimer=null;
 
-    // ══════════════════════════════════════════════════════════
-    //  WebSocket
-    // ══════════════════════════════════════════════════════════
     function connect(){
         const p=location.protocol==='https:'?'wss:':'ws:';
         ws=new WebSocket(`${p}//${location.host}`);
@@ -325,9 +352,6 @@
     }
     function send(type,data){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type,data:data||{}}))}
 
-    // ══════════════════════════════════════════════════════════
-    //  Message Handler
-    // ══════════════════════════════════════════════════════════
     function handleMsg(msg){
         switch(msg.type){
             case'init':
@@ -345,12 +369,12 @@
             case'plan_chat_stream':if(window._planStreamDiv){window._planStreamText+=msg.data.text;window._planStreamDiv.textContent=window._planStreamText;const mc=document.getElementById('planChatMsgs');if(mc)mc.scrollTop=mc.scrollHeight}break;
             case'plan_chat_done':planChatStreaming=false;document.getElementById('planChatSendBtn').disabled=false;if(window._planStreamDiv){window._planStreamDiv.textContent=msg.data.fullText;planChatHistory.push({role:'assistant',content:msg.data.fullText})}window._planStreamDiv=null;window._planStreamText='';break;
             case'plan_chat_error':planChatStreaming=false;document.getElementById('planChatSendBtn').disabled=false;addPlanChatMsg('assistant','出错了：'+msg.data.message);break;
+            case'memory_data':currentMemory=msg.data.memory;renderMemoryPanel();break;
+            case'memory_updated':{const t=tasks.find(t=>t.projectPath===msg.data.projectPath&&t.id===selectedId);if(t){send('get_memory',{projectPath:msg.data.projectPath})}break}
+            case'role_suggestions':renderSuggestions(msg.data.suggestions);break;
         }
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  Sidebar Render
-    // ══════════════════════════════════════════════════════════
     function renderList(){
         const el=document.getElementById('taskList');
         const running=tasks.filter(t=>t.status==='running').length;
@@ -368,6 +392,7 @@
         document.getElementById('taskView').style.display='flex';
         document.getElementById('logViewer').innerHTML='';
         renderInfo();renderChildren();renderResults();renderFollowUp();
+        send('get_memory',{projectPath:t.projectPath});
         send('get_logs',{taskId:id});renderList();
         if(window.innerWidth<=768)toggleSidebar();
     }
@@ -409,12 +434,102 @@
         document.getElementById('followupHist').innerHTML=(t.followUps&&t.followUps.length)?t.followUps.map(f=>`<div class="fu-item">${esc(f.prompt)}</div>`).join(''):'';
     }
 
+    function renderMemoryPanel(){
+        const panel=document.getElementById('memoryPanel');
+        const body=document.getElementById('memoryBody');
+        if(!currentMemory||!currentMemory.tasks||currentMemory.tasks.length===0){panel.style.display='none';return}
+        panel.style.display='block';
+        document.getElementById('memoryCount').textContent=`(${currentMemory.tasks.length} 条)`;
+        let html='';
+        if(currentMemory.techStack&&currentMemory.techStack.length) html+=`<div class="memory-section"><div class="memory-section-title">技术栈</div><div class="memory-tags">${currentMemory.techStack.map(t=>`<span class="memory-tag tech">${esc(t)}</span>`).join('')}</div></div>`;
+        if(currentMemory.architecture) html+=`<div class="memory-section"><div class="memory-section-title">架构</div><div style="font-size:.7rem;color:var(--t2)">${esc(currentMemory.architecture)}</div></div>`;
+        if(currentMemory.patterns&&currentMemory.patterns.length) html+=`<div class="memory-section"><div class="memory-section-title">代码模式</div><div class="memory-tags">${currentMemory.patterns.map(p=>`<span class="memory-tag pattern">${esc(p)}</span>`).join('')}</div></div>`;
+        if(currentMemory.decisions&&currentMemory.decisions.length) html+=`<div class="memory-section"><div class="memory-section-title">近期决策</div><div class="memory-tags">${currentMemory.decisions.slice(-5).map(d=>`<span class="memory-tag decision">${esc(d.text||d)}</span>`).join('')}</div></div>`;
+        if(currentMemory.tasks&&currentMemory.tasks.length) html+=`<div class="memory-section"><div class="memory-section-title">任务历史</div>${currentMemory.tasks.slice(-5).reverse().map(t=>`<div class="memory-task"><div class="memory-task-name">${esc(t.name)}</div><div class="memory-task-summary">${esc(t.summary||'')}</div></div>`).join('')}</div>`;
+        body.innerHTML=html||'<div class="memory-empty">暂无记忆</div>';
+        body.style.display=memoryExpanded?'block':'none';
+    }
+
+    function toggleMemory(){
+        memoryExpanded=!memoryExpanded;
+        document.getElementById('memoryBody').style.display=memoryExpanded?'block':'none';
+        document.getElementById('memoryToggle').textContent=memoryExpanded?'\u25BC':'\u25B6';
+    }
+
+    function clearMemory(){
+        const t=tasks.find(t=>t.id===selectedId);if(!t)return;
+        if(!confirm('确定清除此项目的记忆？'))return;
+        send('clear_memory',{projectPath:t.projectPath});
+        currentMemory=null;renderMemoryPanel();toast('记忆已清除','ok');
+    }
+
+    function showPathMemory(){
+        if(!currentMemory)return;
+        const body=document.getElementById('memoryModalBody');
+        let html='<div style="font-size:.75rem;color:var(--t2);margin-bottom:12px">项目路径：'+esc(currentMemory.projectPath)+'</div>';
+        if(currentMemory.techStack&&currentMemory.techStack.length) html+=`<div style="margin-bottom:8px"><strong>技术栈：</strong>${currentMemory.techStack.join(', ')}</div>`;
+        if(currentMemory.architecture) html+=`<div style="margin-bottom:8px"><strong>架构：</strong>${esc(currentMemory.architecture)}</div>`;
+        if(currentMemory.tasks&&currentMemory.tasks.length){
+            html+='<div style="margin-top:12px"><strong>任务历史：</strong></div>';
+            for(const t of currentMemory.tasks) html+=`<div class="memory-task" style="margin-top:6px"><div class="memory-task-name">${esc(t.name)}</div><div class="memory-task-summary">${esc(t.summary||'')}${t.issues&&t.issues.length?'<br>问题: '+t.issues.join('; '):''}</div></div>`;
+        }
+        body.innerHTML=html;
+        showModal('memoryModal');
+    }
+
+    function clearMemoryFromModal(){
+        const t=tasks.find(t=>t.id===selectedId);if(!t)return;
+        if(!confirm('确定清除？'))return;
+        send('clear_memory',{projectPath:t.projectPath});
+        currentMemory=null;renderMemoryPanel();hideModal('memoryModal');toast('记忆已清除','ok');
+    }
+
+    function onPathChange(){
+        clearTimeout(pathMemoryTimer);
+        pathMemoryTimer=setTimeout(async()=>{
+            const p=document.getElementById('fPath').value.trim();
+            if(p.length<3){document.getElementById('pathMemoryIndicator').style.display='none';return}
+            try{
+                const r=await fetch(`/api/memory?path=${encodeURIComponent(p)}`);
+                const d=await r.json();
+                if(d.memory&&d.memory.tasks&&d.memory.tasks.length>0){
+                    document.getElementById('pathMemoryCount').textContent=d.memory.tasks.length;
+                    document.getElementById('pathMemoryIndicator').style.display='flex';
+                    currentMemory=d.memory;
+                } else { document.getElementById('pathMemoryIndicator').style.display='none'; }
+            }catch{document.getElementById('pathMemoryIndicator').style.display='none'}
+        },500);
+    }
+
+    function onPlanChange(){
+        clearTimeout(suggestTimer);
+        suggestTimer=setTimeout(async()=>{
+            const plan=document.getElementById('fPlan').value.trim();
+            if(plan.length<10||selectedRole){document.getElementById('suggestBar').innerHTML='';return}
+            try{
+                const r=await fetch(`/api/suggest-role?plan=${encodeURIComponent(plan.substring(0,200))}`);
+                const d=await r.json();
+                renderSuggestions(d.suggestions||[]);
+            }catch{}
+        },800);
+    }
+
+    function renderSuggestions(suggestions){
+        const bar=document.getElementById('suggestBar');
+        if(!suggestions.length){bar.innerHTML='';return}
+        bar.innerHTML=suggestions.map(s=>`<div class="suggest-chip" onclick="applySuggestion('${s.roleId}')">${s.icon} ${esc(s.name)} <span class="score">${s.score}</span></div>`).join('');
+    }
+
+    function applySuggestion(roleId){
+        selectedRole=roleId;selectedTaskType=null;
+        renderRoleBar();renderRolePreview();renderTaskTypes();
+        document.getElementById('suggestBar').innerHTML='';
+        toast(`已选择推荐角色：${(roles.find(r=>r.id===roleId)||{}).name||''}`,'ok');
+    }
+
     function appendLog(e){const v=document.getElementById('logViewer');const d=document.createElement('div');d.className=`lline ${e.stream}`;d.textContent=e.text;v.appendChild(d);while(v.children.length>8000)v.removeChild(v.firstChild);if(autoScroll)v.scrollTop=v.scrollHeight}
     function showEmpty(){document.getElementById('emptyState').style.display='flex';document.getElementById('taskView').style.display='none'}
 
-    // ══════════════════════════════════════════════════════════
-    //  New Task Modal
-    // ══════════════════════════════════════════════════════════
     function showNewModal(){
         selectedRole=null;selectedTaskType=null;subTaskCount=0;planChatHistory=[];
         renderRoleBar();renderTplBar();renderTaskTypes();
@@ -423,11 +538,12 @@
         document.getElementById('subTaskList').innerHTML='';
         document.getElementById('parallelSection').style.display='none';
         document.getElementById('planLabel').textContent='任务描述';
+        document.getElementById('suggestBar').innerHTML='';
+        document.getElementById('pathMemoryIndicator').style.display='none';
         const s=localStorage.getItem('ch_path');if(s)document.getElementById('fPath').value=s;
         showModal('newModal');document.getElementById('fName').focus();
     }
 
-    // ── Role Bar ──
     function renderRoleBar(){
         document.getElementById('roleBar').innerHTML=roles.map(r=>
             `<div class="chip ${selectedRole===r.id?'active':''}" onclick="selectRole('${r.id}')">${r.icon} ${esc(r.name)}</div>`
@@ -437,6 +553,7 @@
     function selectRole(id){
         if(selectedRole===id){selectedRole=null;selectedTaskType=null}
         else{selectedRole=id;selectedTaskType=null}
+        document.getElementById('suggestBar').innerHTML='';
         renderRoleBar();renderRolePreview();renderTaskTypes();
     }
 
@@ -458,8 +575,8 @@
           <span style="font-size:.6875rem;color:var(--t3)">${esc(role.description||'')}</span>
         </div>
         <div style="display:flex;gap:6px">
-          <button type="button" class="sm-btn primary" onclick="confirmRole()">✓ 确认</button>
-          <button type="button" class="sm-btn" onclick="customizeRole('${role.id}')">✏ 修改并另存</button>
+          <button type="button" class="sm-btn primary" onclick="confirmRole()">&#x2713; 确认</button>
+          <button type="button" class="sm-btn" onclick="customizeRole('${role.id}')">&#x270F; 修改并另存</button>
         </div>
       </div>
       <pre>${esc(role.persona||'（无设定）')}</pre>
@@ -488,9 +605,12 @@
         document.getElementById('rePersona').value=role.persona||'';
         const c=document.getElementById('reTaskTypes');c.innerHTML='';
         for(const tt of(role.tasks||[]))addRoleTaskTypeRow(tt.icon,tt.name,tt.description,tt.promptSuffix);
+        const sc=document.getElementById('reSkills');sc.innerHTML='';
+        for(const s of(role.skills||[]))addSkillRowWithValue(s);
+        const mc=document.getElementById('reMcp');mc.innerHTML='';
+        for(const m of(role.mcpServers||[]))addMcpRowWithValue(m);
     }
 
-    // ── Task Types ──
     function renderTaskTypes(){
         const grid=document.getElementById('ttGrid'),section=document.getElementById('taskTypeSection'),ps=document.getElementById('parallelSection');
         if(!selectedRole){section.style.display='none';ps.style.display='none';return}
@@ -508,12 +628,11 @@
         if(role){const tt=role.tasks.find(t=>t.id===selectedTaskType);if(tt){document.getElementById('planLabel').textContent=`${tt.icon} ${tt.name}`;document.getElementById('fPlan').placeholder=tt.description||'描述你的需求...'}}
     }
 
-    // ── Task Templates ──
     function renderTplBar(){
         const sec=document.getElementById('tplSection'),bar=document.getElementById('tplBar');
         if(!taskTemplates.length){sec.style.display='none';return}
         sec.style.display='block';
-        bar.innerHTML=taskTemplates.map(t=>`<div class="chip" onclick="applyTemplate('${t.id}')">📌 ${esc(t.name)}</div>`).join('')+'<div class="chip danger" onclick="clearTemplate()" style="border-color:var(--err);color:var(--err);font-size:.625rem">清除</div>';
+        bar.innerHTML=taskTemplates.map(t=>`<div class="chip" onclick="applyTemplate('${t.id}')">&#x1F4CC; ${esc(t.name)}</div>`).join('')+'<div class="chip danger" onclick="clearTemplate()" style="border-color:var(--err);color:var(--err);font-size:.625rem">清除</div>';
     }
 
     function applyTemplate(id){
@@ -535,7 +654,6 @@
         send('save_template',{name,roleId:selectedRole,taskTypeId:selectedTaskType,projectPath:document.getElementById('fPath').value,plan:document.getElementById('fPlan').value});
     }
 
-    // ── Parallel Sub Tasks ──
     function addSubTask(){
         subTaskCount++;
         const list=document.getElementById('subTaskList');
@@ -544,7 +662,6 @@
         list.appendChild(row);
     }
 
-    // ── Submit ──
     function submitTask(e){
         e.preventDefault();
         const subRows=document.getElementById('subTaskList').querySelectorAll('.sub-task-row');
@@ -555,9 +672,6 @@
         send('create_task',data);hideModal('newModal');document.getElementById('taskForm').reset();
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  AI Plan Chat
-    // ══════════════════════════════════════════════════════════
     function togglePlanChat(){
         const p=document.getElementById('planChatPanel');
         p.style.display=p.style.display==='none'?'block':'none';
@@ -588,9 +702,6 @@
         planChatHistory=[];toast('计划已填入表单','ok');
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  Role Editor
-    // ══════════════════════════════════════════════════════════
     function showRoleEditor(){updateRoleEditorSelect();showModal('roleEditorModal')}
 
     function updateRoleEditorSelect(){
@@ -599,13 +710,25 @@
 
     function loadRoleForEdit(){
         const id=document.getElementById('roleEditorSelect').value;
-        if(!id||id==='_new'){['reId','reName','reIcon','reDesc'].forEach(x=>document.getElementById(x).value='');document.getElementById('reId').disabled=false;document.getElementById('rePersona').value='';document.getElementById('reTaskTypes').innerHTML='';return}
+        if(!id||id==='_new'){
+            ['reId','reName','reIcon','reDesc'].forEach(x=>document.getElementById(x).value='');
+            document.getElementById('reId').disabled=false;
+            document.getElementById('rePersona').value='';
+            document.getElementById('reTaskTypes').innerHTML='';
+            document.getElementById('reSkills').innerHTML='';
+            document.getElementById('reMcp').innerHTML='';
+            return
+        }
         const role=roles.find(r=>r.id===id);if(!role)return;
         document.getElementById('reId').value=role.id;document.getElementById('reId').disabled=true;
         document.getElementById('reName').value=role.name;document.getElementById('reIcon').value=role.icon;
         document.getElementById('reDesc').value=role.description||'';document.getElementById('rePersona').value=role.persona||'';
         const c=document.getElementById('reTaskTypes');c.innerHTML='';
         for(const tt of(role.tasks||[]))addRoleTaskTypeRow(tt.icon,tt.name,tt.description,tt.promptSuffix);
+        const sc=document.getElementById('reSkills');sc.innerHTML='';
+        for(const s of(role.skills||[]))addSkillRowWithValue(s);
+        const mc=document.getElementById('reMcp');mc.innerHTML='';
+        for(const m of(role.mcpServers||[]))addMcpRowWithValue(m);
     }
 
     function addRoleTaskType(){addRoleTaskTypeRow('','','','')}
@@ -616,25 +739,37 @@
         c.appendChild(row);
     }
 
+    function addSkillRow(){addSkillRowWithValue('')}
+    function addSkillRowWithValue(value){
+        const c=document.getElementById('reSkills');const row=document.createElement('div');row.className='skill-row';
+        row.innerHTML=`<input placeholder="例如：brainstorming 或 exa-search" value="${esc(value)}"><button type="button" class="sm-btn danger" onclick="this.parentElement.remove()" style="font-size:.6rem">删</button>`;
+        c.appendChild(row);
+    }
+
+    function addMcpRow(){addMcpRowWithValue('')}
+    function addMcpRowWithValue(value){
+        const c=document.getElementById('reMcp');const row=document.createElement('div');row.className='skill-row';
+        row.innerHTML=`<input placeholder="例如：github 或 mysql" value="${esc(value)}"><button type="button" class="sm-btn danger" onclick="this.parentElement.remove()" style="font-size:.6rem">删</button>`;
+        c.appendChild(row);
+    }
+
     function saveRoleFromEditor(){
         const id=document.getElementById('reId').value.trim();if(!id){toast('ID 不能为空','err');return}
         const rows=document.getElementById('reTaskTypes').querySelectorAll('.tt-edit-row');
         const tts=[];
-        rows.forEach(r=>{const inputs=r.querySelectorAll('input,textarea');tts.push({id:(inputs[1].value||'tt-'+Date.now()).replace(/\s/g,'-').toLowerCase(),icon:inputs[0].value||'📌',name:inputs[1].value||'未命名',description:inputs[2].value,promptSuffix:inputs[3].value||''})});
-        send('save_role',{id,name:document.getElementById('reName').value||id,icon:document.getElementById('reIcon').value||'📌',description:document.getElementById('reDesc').value,persona:document.getElementById('rePersona').value,mcpServers:[],skills:[],tasks:tts});
+        rows.forEach(r=>{const inputs=r.querySelectorAll('input,textarea');tts.push({id:(inputs[1].value||'tt-'+Date.now()).replace(/\s/g,'-').toLowerCase(),icon:inputs[0].value||'&#x1F4CC;',name:inputs[1].value||'未命名',description:inputs[2].value,promptSuffix:inputs[3].value||''})});
+        const skillInputs=document.getElementById('reSkills').querySelectorAll('input');
+        const skills=[];skillInputs.forEach(inp=>{const v=inp.value.trim();if(v)skills.push(v)});
+        const mcpInputs=document.getElementById('reMcp').querySelectorAll('input');
+        const mcpServers=[];mcpInputs.forEach(inp=>{const v=inp.value.trim();if(v)mcpServers.push(v)});
+        send('save_role',{id,name:document.getElementById('reName').value||id,icon:document.getElementById('reIcon').value||'&#x1F4CC;',description:document.getElementById('reDesc').value,persona:document.getElementById('rePersona').value,mcpServers,skills,tasks:tts});
         toast('角色已保存','ok');hideModal('roleEditorModal');
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  Follow-up & Task Control
-    // ══════════════════════════════════════════════════════════
     function sendFollowUp(){const input=document.getElementById('followupInput');const text=input.value.trim();if(!text)return;const btn=document.getElementById('followupBtn');btn.disabled=true;btn.textContent='执行中...';send('follow_up',{taskId:selectedId,prompt:text});input.value='';setTimeout(()=>{btn.disabled=false;btn.textContent='发送'},2000)}
     function cancelTask(id){send('cancel_task',{taskId:id});toast('取消中...','info')}
     function deleteTask(id){send('delete_task',{taskId:id})}
 
-    // ══════════════════════════════════════════════════════════
-    //  Utilities
-    // ══════════════════════════════════════════════════════════
     function showModal(id){document.getElementById(id).style.display='flex'}
     function hideModal(id){document.getElementById(id).style.display='none'}
     function toggleScroll(){autoScroll=!autoScroll;const b=document.getElementById('autoScrollBtn');b.textContent=autoScroll?'自动滚动':'手动滚动';b.className=autoScroll?'on':''}
