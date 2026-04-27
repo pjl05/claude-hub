@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════════════════
-//  Claude Hub v5 — 完整版
-//  角色系统 + 任务模板 + AI规划 + 并行执行 + 失败重试
+//  Claude Hub v6 — 飞书 + 钉钉集成
 // ═══════════════════════════════════════════════════════════
 
 const express = require('express');
 const { WebSocketServer } = require('ws');
 const http = require('http');
+const https = require('https');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -21,6 +21,7 @@ const CONFIG = {
   tasksDir: path.join(__dirname, 'tasks'),
   rolesDir: path.join(__dirname, 'roles'),
   templatesFile: path.join(__dirname, 'task-templates.json'),
+  publicUrl: process.env.PUBLIC_URL || '', // 公网访问地址，用于飞书卡片链接
 };
 
 fs.mkdirSync(CONFIG.tasksDir, { recursive: true });
@@ -36,6 +37,314 @@ const tasks = new Map();
 const clients = new Set();
 const queue = [];
 let runningCount = 0;
+
+// ═══════════════════════════════════════════════════════════
+//  飞书配置
+// ═══════════════════════════════════════════════════════════
+const FEISHU = {
+  appId: process.env.FEISHU_APP_ID || '',
+  appSecret: process.env.FEISHU_APP_SECRET || '',
+  verificationToken: process.env.FEISHU_VERIFICATION_TOKEN || '',
+  encryptKey: process.env.FEISHU_ENCRYPT_KEY || '',
+  enabled: false,
+};
+
+let feishuToken = '';
+let feishuTokenExpiry = 0;
+
+function initFeishu() {
+  if (FEISHU.appId && FEISHU.appSecret) {
+    FEISHU.enabled = true;
+    console.log('  飞书 Bot: 已启用');
+    console.log(`  Webhook: ${CONFIG.publicUrl || 'http://你的地址:' + CONFIG.port}/feishu/webhook`);
+  } else {
+    console.log('  飞书 Bot: 未配置');
+  }
+}
+
+async function getFeishuToken() {
+  if (Date.now() < feishuTokenExpiry) return feishuToken;
+  try {
+    const resp = await fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ app_id: FEISHU.appId, app_secret: FEISHU.appSecret }),
+    });
+    const data = await resp.json();
+    if (data.tenant_access_token) {
+      feishuToken = data.tenant_access_token;
+      feishuTokenExpiry = Date.now() + (data.expire - 60) * 1000;
+    }
+  } catch (e) {
+    console.error('飞书 Token 获取失败:', e.message);
+  }
+  return feishuToken;
+}
+
+async function sendFeishuMessage(chatId, text) {
+  if (!FEISHU.enabled) return;
+  try {
+    const token = await getFeishuToken();
+    await fetch('https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        receive_id: chatId,
+        msg_type: 'text',
+        content: JSON.stringify({ text }),
+      }),
+    });
+  } catch (e) {
+    console.error('飞书消息发送失败:', e.message);
+  }
+}
+
+async function sendFeishuCard(chatId, title, content, status) {
+  if (!FEISHU.enabled) return;
+  try {
+    const token = await getFeishuToken();
+    const color = status === 'completed' ? 'green' : status === 'failed' ? 'red' : 'blue';
+    const card = {
+      config: { wide_screen_mode: true },
+      header: { title: { tag: 'plain_text', content: title }, template: color },
+      elements: [{ tag: 'div', text: { tag: 'lark_md', content } }],
+    };
+    if (CONFIG.publicUrl) {
+      card.elements.push({
+        tag: 'action',
+        actions: [{
+          tag: 'button',
+          text: { tag: 'plain_text', content: '查看详情' },
+          url: CONFIG.publicUrl,
+          type: 'primary',
+        }],
+      });
+    }
+    await fetch('https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        receive_id: chatId,
+        msg_type: 'interactive',
+        content: JSON.stringify(card),
+      }),
+    });
+  } catch (e) {
+    console.error('飞书卡片发送失败:', e.message);
+  }
+}
+
+// 飞书 Webhook
+app.post('/feishu/webhook', async (req, res) => {
+  const body = req.body;
+
+  // URL 验证
+  if (body.type === 'url_verification') {
+    return res.json({ challenge: body.challenge });
+  }
+
+  // 消息事件
+  if (body.header && body.header.event_type === 'im.message.receive_v1') {
+    const event = body.event;
+    const msg = event.message;
+    if (msg.message_type !== 'text') return res.json({ ok: true });
+
+    const content = JSON.parse(msg.content);
+    const text = (content.text || '').replace(/@_user_\d+/g, '').trim();
+    const chatId = msg.chat_id;
+    if (!text) return res.json({ ok: true });
+
+    await handleBotMessage('feishu', chatId, text);
+  }
+
+  res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════
+//  钉钉配置
+// ═══════════════════════════════════════════════════════════
+const DINGTALK = {
+  webhookToken: process.env.DINGTALK_WEBHOOK_TOKEN || '',
+  webhookSecret: process.env.DINGTALK_WEBHOOK_SECRET || '',
+  appKey: process.env.DINGTALK_APP_KEY || '',
+  appSecret: process.env.DINGTALK_APP_SECRET || '',
+  enabled: false,
+};
+
+function initDingTalk() {
+  if (DINGTALK.webhookToken) {
+    DINGTALK.enabled = true;
+    console.log('  钉钉 Bot: 已启用');
+  } else {
+    console.log('  钉钉 Bot: 未配置');
+  }
+}
+
+async function sendDingTalkMessage(title, text) {
+  if (!DINGTALK.enabled) return;
+  try {
+    let url = `https://oapi.dingtalk.com/robot/send?access_token=${DINGTALK.webhookToken}`;
+    if (DINGTALK.webhookSecret) {
+      const timestamp = Date.now();
+      const stringToSign = `${timestamp}\n${DINGTALK.webhookSecret}`;
+      const sign = encodeURIComponent(
+          crypto.createHmac('sha256', DINGTALK.webhookSecret).update(stringToSign).digest('base64')
+      );
+      url += `&timestamp=${timestamp}&sign=${sign}`;
+    }
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        msgtype: 'markdown',
+        markdown: { title, text: `Claude Hub ${title}\n\n${text}` },
+      }),
+    });
+  } catch (e) {
+    console.error('钉钉消息发送失败:', e.message);
+  }
+}
+
+// 钉钉 Webhook（企业内部应用）
+app.post('/dingtalk/webhook', async (req, res) => {
+  const body = req.body;
+
+  // 验证
+  if (body.challenge) {
+    return res.json({ challenge: body.challenge });
+  }
+
+  // 消息处理
+  if (body.msgtype === 'text') {
+    const text = (body.text && body.text.content) ? body.text.content.trim() : '';
+    const conversationId = body.conversationId || '';
+    const senderId = body.senderStaffId || '';
+    if (text) {
+      await handleBotMessage('dingtalk', conversationId, text);
+    }
+  }
+
+  res.json({ success: true });
+});
+
+// ═══════════════════════════════════════════════════════════
+//  统一消息处理（飞书 + 钉钉共用）
+// ═══════════════════════════════════════════════════════════
+async function handleBotMessage(platform, chatId, text) {
+  // 解析命令格式：
+  // /task <名称> | <路径> | <描述>   → 结构化任务
+  // /status                          → 查看运行中的任务
+  // /help                            → 帮助
+  // 其他文字                         → 当作快速任务
+
+  if (text === '/help' || text === '帮助') {
+    const helpText = `Claude Hub 使用指南：
+
+/task <名称> | <路径> | <描述>
+  创建结构化任务
+  示例：/task 用户管理 | D:\\projects\\user-mgr | 创建用户CRUD接口
+
+/status
+  查看当前运行中的任务
+
+其他任何文字
+  直接当作快速任务执行`;
+
+    if (platform === 'feishu') await sendFeishuMessage(chatId, helpText);
+    else await sendDingTalkMessage('帮助', helpText);
+    return;
+  }
+
+  if (text === '/status' || text === '状态') {
+    const running = Array.from(tasks.values()).filter(t => t.status === 'running');
+    const queued = Array.from(tasks.values()).filter(t => t.status === 'queued');
+    let statusText = `当前状态：\n运行中：${running.length}\n等待中：${queued.length}\n总计：${tasks.size}`;
+    if (running.length > 0) {
+      statusText += '\n\n运行中的任务：';
+      for (const t of running) statusText += `\n- ${t.name} (${t.phaseName})`;
+    }
+    if (platform === 'feishu') await sendFeishuMessage(chatId, statusText);
+    else await sendDingTalkMessage('状态', statusText);
+    return;
+  }
+
+  // 创建任务
+  const parts = text.startsWith('/task') ? text.replace('/task', '').trim().split('|').map(s => s.trim()) : text.split('|').map(s => s.trim());
+
+  let name, projectPath, plan;
+
+  if (parts.length >= 3) {
+    name = parts[0] || 'Bot 任务';
+    projectPath = parts[1];
+    plan = parts[2];
+  } else if (parts.length === 2) {
+    name = parts[0] || 'Bot 任务';
+    projectPath = parts[1];
+    plan = parts[0];
+  } else {
+    name = text.substring(0, 50);
+    projectPath = path.join(CONFIG.tasksDir, '_bot', Date.now().toString());
+    plan = text;
+  }
+
+  // 确保项目路径存在
+  try { fs.mkdirSync(projectPath, { recursive: true }); } catch {}
+
+  const id = genId();
+  const taskDir = path.join(CONFIG.tasksDir, id);
+  fs.mkdirSync(taskDir, { recursive: true });
+
+  const task = {
+    id, name, type: 'single',
+    roleId: null, taskTypeId: null,
+    projectPath, taskDir,
+    status: 'queued', phase: 0, phaseName: '等待中',
+    createdAt: Date.now(), startedAt: null, completedAt: null,
+    logs: [], error: null, currentProcess: null, results: null,
+    plan, followUps: [], parentId: null, childIds: [],
+    retryCount: 0,
+    botPlatform: platform,
+    botChatId: chatId,
+  };
+
+  tasks.set(id, task);
+  saveIndex();
+  broadcast({ type: 'task_created', data: serializeTask(task) });
+  queue.push(id);
+  tryExecuteNext();
+
+  const confirmMsg = `🚀 任务已创建\n\n名称：${name}\n路径：${projectPath}\n状态：等待执行...`;
+  if (platform === 'feishu') await sendFeishuCard(chatId, `🚀 ${name}`, confirmMsg, 'running');
+  else await sendDingTalkMessage(`🚀 ${name}`, confirmMsg);
+}
+
+// 任务完成后通知 Bot
+function notifyBot(task) {
+  if (!task.botPlatform || !task.botChatId) return;
+
+  const statusEmoji = task.status === 'completed' ? '✅' : '❌';
+  const statusText = task.status === 'completed' ? '已完成' : '失败';
+  let msg = `${statusEmoji} ${statusText}：${task.name}\n`;
+  msg += `耗时：${fmtDuration(task.completedAt - task.startedAt)}`;
+  if (task.error) msg += `\n错误：${task.error}`;
+  if (task.results && task.results.files && task.results.files.length) {
+    msg += `\n\n生成文件：${task.results.files.length} 个`;
+  }
+
+  if (task.botPlatform === 'feishu') {
+    sendFeishuCard(task.botChatId, `${statusEmoji} ${task.name}`, msg, task.status).catch(() => {});
+  } else if (task.botPlatform === 'dingtalk') {
+    sendDingTalkMessage(`${statusEmoji} ${task.name}`, msg).catch(() => {});
+  }
+}
+
+function fmtDuration(ms) {
+  if (!ms) return '未知';
+  const s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60);
+  if (h > 0) return `${h}小时${m % 60}分钟`;
+  if (m > 0) return `${m}分钟${s % 60}秒`;
+  return `${s}秒`;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  Roles
@@ -61,7 +370,7 @@ function saveRole(roleData) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Task Templates — 任务模板
+//  Task Templates
 // ═══════════════════════════════════════════════════════════
 let taskTemplates = [];
 
@@ -80,12 +389,9 @@ function saveTaskTemplates() {
 
 function addTaskTemplate(data) {
   const tpl = {
-    id: genId(),
-    name: data.name || '未命名模板',
-    roleId: data.roleId || null,
-    taskTypeId: data.taskTypeId || null,
-    projectPath: data.projectPath || '',
-    plan: data.plan || '',
+    id: genId(), name: data.name || '未命名',
+    roleId: data.roleId || null, taskTypeId: data.taskTypeId || null,
+    projectPath: data.projectPath || '', plan: data.plan || '',
     createdAt: Date.now(),
   };
   taskTemplates.push(tpl);
@@ -117,6 +423,7 @@ function saveIndex() {
       completedAt: t.completedAt, error: t.error, results: t.results,
       followUps: t.followUps || [], parentId: t.parentId || null,
       childIds: t.childIds || [], retryCount: t.retryCount || 0,
+      botPlatform: t.botPlatform || null, botChatId: t.botChatId || null,
     });
   }
   fs.writeFileSync(INDEX_FILE, JSON.stringify(list, null, 2), 'utf-8');
@@ -166,6 +473,7 @@ function serializeTask(t) {
     followUps: (t.followUps || []).map(f => ({ prompt: f.prompt, time: f.time })),
     parentId: t.parentId || null, childIds: t.childIds || [],
     retryCount: t.retryCount || 0,
+    botPlatform: t.botPlatform || null,
     duration: t.startedAt ? (t.completedAt || Date.now()) - t.startedAt : 0,
   };
 }
@@ -196,10 +504,7 @@ wss.on('connection', (ws) => {
   clients.add(ws);
   ws.send(JSON.stringify({
     type: 'init',
-    data: {
-      tasks: Array.from(tasks.values()).map(serializeTask),
-      roles, taskTemplates,
-    },
+    data: { tasks: Array.from(tasks.values()).map(serializeTask), roles, taskTemplates },
   }));
   ws.on('message', (raw) => {
     try { handleMessage(ws, JSON.parse(raw)); } catch {}
@@ -244,14 +549,10 @@ function handlePlanChat(ws, data) {
   const parts = [];
   if (role && role.persona) parts.push(`## 你的角色\n\n${role.persona}\n`);
   if (taskType) parts.push(`## 任务类型\n\n${taskType.icon} ${taskType.name}：${taskType.description}\n`);
-
   if (history && history.length > 0) {
     parts.push('## 对话历史\n');
-    for (const h of history) {
-      parts.push(`**${h.role === 'user' ? '用户' : '助手'}**：${h.content}\n`);
-    }
+    for (const h of history) parts.push(`**${h.role === 'user' ? '用户' : '助手'}**：${h.content}\n`);
   }
-
   parts.push(`## 用户最新消息\n\n${message}\n`);
   parts.push(`## 你的任务
 
@@ -309,7 +610,7 @@ function handlePlanChat(ws, data) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  任务创建
+//  任务创建 & 执行（与 v5 相同，省略重复部分）
 // ═══════════════════════════════════════════════════════════
 function createTask(data) {
   const id = genId();
@@ -326,6 +627,7 @@ function createTask(data) {
     logs: [], error: null, currentProcess: null, results: null,
     plan: data.plan || '', followUps: [],
     parentId: null, childIds: [], retryCount: 0,
+    botPlatform: null, botChatId: null,
   };
 
   if (data.type === 'parallel' && data.subTasks && data.subTasks.length > 0) {
@@ -334,7 +636,7 @@ function createTask(data) {
       const subId = genId();
       const subDir = path.join(CONFIG.tasksDir, subId);
       fs.mkdirSync(subDir, { recursive: true });
-      const subTask = {
+      tasks.set(subId, {
         id: subId, name: sub.name || '子任务', type: 'single',
         roleId: task.roleId, taskTypeId: task.taskTypeId,
         projectPath, taskDir: subDir, status: 'queued', phase: 0, phaseName: '等待中',
@@ -342,8 +644,8 @@ function createTask(data) {
         logs: [], error: null, currentProcess: null, results: null,
         plan: sub.plan || '', followUps: [],
         parentId: id, childIds: [], retryCount: 0,
-      };
-      tasks.set(subId, subTask);
+        botPlatform: null, botChatId: null,
+      });
       task.childIds.push(subId);
     }
   }
@@ -351,17 +653,11 @@ function createTask(data) {
   tasks.set(id, task);
   saveIndex();
   broadcast({ type: 'task_created', data: serializeTask(task) });
-
-  if (task.childIds.length > 0) {
-    for (const cid of task.childIds) queue.push(cid);
-  }
+  if (task.childIds.length > 0) for (const cid of task.childIds) queue.push(cid);
   queue.push(id);
   tryExecuteNext();
 }
 
-// ═══════════════════════════════════════════════════════════
-//  执行引擎（并行 + 失败重试）
-// ═══════════════════════════════════════════════════════════
 const MAX_RETRY = 1;
 
 function tryExecuteNext() {
@@ -370,7 +666,6 @@ function tryExecuteNext() {
     const id = queue.shift();
     const task = tasks.get(id);
     if (!task) continue;
-
     if (task.type === 'parallel' && task.childIds && task.childIds.length > 0) {
       const allDone = task.childIds.every(cid => {
         const ct = tasks.get(cid);
@@ -378,14 +673,11 @@ function tryExecuteNext() {
       });
       if (!allDone) { pending.push(id); continue; }
     }
-
     if (task.status === 'queued') {
       if (runningCount < CONFIG.maxConcurrent) {
         runningCount++;
         executeTask(task).finally(() => { runningCount--; tryExecuteNext(); });
-      } else {
-        pending.push(id);
-      }
+      } else { pending.push(id); }
     }
   }
   for (const id of pending) queue.push(id);
@@ -402,69 +694,47 @@ async function executeTask(task) {
       task.phase = 1; task.phaseName = '合并检查中';
       broadcast({ type: 'task_updated', data: serializeTask(task) });
       appendLog(task, '═══════════════════════════════════════\n  合并子任务结果\n═══════════════════════════════════════\n\n', 'system');
-
       const childSummary = task.childIds.map(cid => {
         const ct = tasks.get(cid);
         const s = ct.status === 'completed' ? '✓' : ct.status === 'failed' ? '✗' : '⚠';
-        const r = ct.retryCount > 0 ? ` (重试${ct.retryCount}次)` : '';
-        return `- ${ct.name}: ${s} ${ct.status}${r}${ct.error ? ' → ' + ct.error : ''}`;
+        return `- ${ct.name}: ${s} ${ct.status}${ct.error ? ' → ' + ct.error : ''}`;
       }).join('\n');
       appendLog(task, childSummary + '\n\n', 'system');
-
-      const planFile = path.join(task.projectPath, 'PLAN.md');
-      fs.writeFileSync(planFile, buildMergePrompt(task, childSummary), 'utf-8');
-      await runClaude(task, '读取当前目录下的 PLAN.md，按指令执行合并和检查。', 150);
-
-      if (task.status !== 'cancelled') {
-        task.status = 'completed';
-        task.results = collectResults(task);
-        appendLog(task, '\n✓ 并行任务完成\n', 'system');
-      }
+      fs.writeFileSync(path.join(task.projectPath, 'PLAN.md'), buildMergePrompt(task, childSummary), 'utf-8');
+      await runClaude(task, '读取 PLAN.md，按指令执行合并和检查。', 150);
+      if (task.status !== 'cancelled') { task.status = 'completed'; task.results = collectResults(task); appendLog(task, '\n✓ 并行任务完成\n', 'system'); }
     } else {
       task.phase = 1; task.phaseName = '自主执行中';
       broadcast({ type: 'task_updated', data: serializeTask(task) });
-
-      const fullPrompt = buildPrompt(task);
-      const planFile = path.join(task.projectPath, 'PLAN.md');
-      fs.writeFileSync(planFile, fullPrompt, 'utf-8');
-      appendLog(task, `[指令] ${planFile}\n\n`, 'system');
+      fs.writeFileSync(path.join(task.projectPath, 'PLAN.md'), buildPrompt(task), 'utf-8');
       appendLog(task, '═══════════════════════════════════════\n  开始自主执行\n═══════════════════════════════════════\n\n', 'system');
-      await runClaude(task, '读取当前目录下的 PLAN.md，按指令逐步执行。直接开始。', 300);
-
+      await runClaude(task, '读取 PLAN.md，按指令逐步执行。直接开始。', 300);
       if (task.status !== 'cancelled') {
         task.phase = 2; task.phaseName = '检查结果';
         broadcast({ type: 'task_updated', data: serializeTask(task) });
-        appendLog(task, '\n═══════════════════════════════════════\n  检查结果\n═══════════════════════════════════════\n\n', 'system');
         const rp = path.join(task.projectPath, 'REPORT_PLAN.md');
         fs.writeFileSync(rp, buildReportPrompt(task), 'utf-8');
-        await runClaude(task, '读取当前目录下的 REPORT_PLAN.md，按指令生成报告。', 80);
+        await runClaude(task, '读取 REPORT_PLAN.md，按指令生成报告。', 80);
         try { fs.unlinkSync(rp); } catch {}
       }
-
-      if (task.status !== 'cancelled') {
-        task.status = 'completed';
-        task.results = collectResults(task);
-        appendLog(task, '\n✓ 任务完成\n', 'system');
-      }
+      if (task.status !== 'cancelled') { task.status = 'completed'; task.results = collectResults(task); appendLog(task, '\n✓ 任务完成\n', 'system'); }
     }
   } catch (err) {
     if (task.status === 'cancelled') {
-      // 用户取消
+      // 取消
     } else if (task.parentId && (task.retryCount || 0) < MAX_RETRY) {
       task.retryCount = (task.retryCount || 0) + 1;
       appendLog(task, `\n⚠ 失败，自动重试 (${task.retryCount}/${MAX_RETRY})...\n\n`, 'system');
-      task.status = 'queued';
-      task.phase = 0; task.phaseName = '重试中';
+      task.status = 'queued'; task.phase = 0; task.phaseName = '重试中';
       task.startedAt = null; task.completedAt = null;
-      task.plan += `\n\n## 上次执行失败\n\n错误：${err.message}\n请避免同样的问题。`;
+      task.plan += `\n\n## 上次失败\n\n${err.message}\n请避免同样问题。`;
       saveIndex();
       broadcast({ type: 'task_updated', data: serializeTask(task) });
       queue.push(task.id);
       tryExecuteNext();
       return;
     } else {
-      task.status = 'failed';
-      task.error = err.message;
+      task.status = 'failed'; task.error = err.message;
       appendLog(task, `\n✗ 失败: ${err.message}\n`, 'system');
     }
   }
@@ -473,10 +743,13 @@ async function executeTask(task) {
   if (task.currentProcess) { try { task.currentProcess.kill(); } catch {} task.currentProcess = null; }
   saveIndex();
   broadcast({ type: 'task_updated', data: serializeTask(task) });
+
+  // 通知 Bot
+  notifyBot(task);
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Claude 执行器（技能注入）
+//  Claude 执行器
 // ═══════════════════════════════════════════════════════════
 function runClaude(task, shortPrompt, maxTurns) {
   return new Promise((resolve, reject) => {
@@ -496,7 +769,7 @@ function runClaude(task, shortPrompt, maxTurns) {
     if (task.roleId) {
       const role = roles.find(r => r.id === task.roleId);
       if (role && role.skills && role.skills.length > 0) {
-        skillHint = '\n\n可用技能：' + role.skills.join(', ') + '\n请在合适的时候主动使用这些技能。';
+        skillHint = '\n\n可用技能：' + role.skills.join(', ') + '\n请在合适时主动使用。';
       }
     }
 
@@ -509,9 +782,7 @@ function runClaude(task, shortPrompt, maxTurns) {
     let proc;
     try {
       proc = spawn(cmd, [], { cwd: task.projectPath, env: { ...process.env }, stdio: ['pipe', 'pipe', 'pipe'], shell: true });
-    } catch (err) {
-      return reject(new Error(`启动失败: ${err.message}`));
-    }
+    } catch (err) { return reject(new Error(`启动失败: ${err.message}`)); }
 
     task.currentProcess = proc;
     proc.stdout.on('data', (d) => appendLog(task, stripAnsi(d.toString()), 'stdout'));
@@ -550,28 +821,24 @@ function getTaskTypeContext(task) {
 
 function buildPrompt(task) {
   const parts = [];
-  const rc = getRoleContext(task);
-  if (rc) parts.push(rc);
-  const tc = getTaskTypeContext(task);
-  if (tc) parts.push(tc);
-
+  const rc = getRoleContext(task); if (rc) parts.push(rc);
+  const tc = getTaskTypeContext(task); if (tc) parts.push(tc);
   parts.push(`## 工作目录\n\n${task.projectPath}\n所有文件都在这个目录下。\n`);
   parts.push(`## 任务需求\n\n${task.plan}\n`);
 
-  // 技能指南
   if (task.roleId) {
     const role = roles.find(r => r.id === task.roleId);
     if (role && role.skills && role.skills.length > 0) {
       let guide = '## 技能指南\n\n你有以下技能，请在合适时主动使用：\n';
       for (const s of role.skills) {
-        if (s.includes('brainstorming')) guide += '- brainstorming：动手前先头脑风暴分析方案\n';
-        else if (s.includes('writing-plans') || s.includes('write-plan')) guide += '- writing-plans：先编写详细开发计划\n';
-        else if (s.includes('executing-plans')) guide += '- executing-plans：按计划逐步执行\n';
-        else if (s.includes('subagent')) guide += '- subagent-driven：复杂任务拆分子任务分别执行\n';
+        if (s.includes('brainstorming')) guide += '- brainstorming：动手前先头脑风暴\n';
+        else if (s.includes('writing-plans') || s.includes('write-plan')) guide += '- writing-plans：先编写开发计划\n';
+        else if (s.includes('executing-plans')) guide += '- executing-plans：按计划执行\n';
+        else if (s.includes('subagent')) guide += '- subagent-driven：复杂任务拆分子任务\n';
         else if (s.includes('code-review')) guide += '- code-review：完成后做代码审查\n';
         else if (s.includes('exa-search')) guide += '- exa-search：搜索最新信息\n';
-        else if (s.includes('browser')) guide += '- browser-automation：需要时用浏览器抓取网页\n';
-        else if (s.includes('python')) guide += '- python-review：Python 代码专项审查\n';
+        else if (s.includes('browser')) guide += '- browser-automation：浏览器抓取\n';
+        else if (s.includes('python')) guide += '- python-review：Python 代码审查\n';
         else if (s.includes('docs-consistency')) guide += '- docs-consistency：检查文档一致性\n';
       }
       parts.push(guide);
@@ -580,56 +847,25 @@ function buildPrompt(task) {
 
   parts.push(`## 执行规则（必须遵守）
 
-1. 仔细阅读「任务需求」，理解用户到底要什么
+1. 仔细阅读「任务需求」
 2. 如果要求创建新子目录，创建后在里面工作
-3. 需要外部信息就用 WebFetch 抓取
+3. 需要外部信息就用 WebFetch
 4. 自主完成，不要等确认
 5. 遇到错误自行修复
-6. 需要安装依赖就安装
-7. 确保产出物真实可用
-8. 完成后在 docs/ 下生成：
-   - docs/completed.md — 完成了什么
-   - docs/issues.md — 遇到的问题
-   - docs/remaining.md — 遗留问题
-9. 不要编造内容。没实现的功能不要写在报告里。
-10. 每个需求都要实际执行。`);
+6. 确保产出物真实可用
+7. 完成后在 docs/ 下生成 completed.md、issues.md、remaining.md
+8. 不要编造内容`);
 
   return parts.join('\n---\n\n');
 }
 
 function buildReportPrompt(task) {
-  return `你在 ${task.projectPath} 中刚完成了一些工作。
-
-检查 docs/ 下的报告是否真实准确：
-1. docs/completed.md
-2. docs/issues.md
-3. docs/remaining.md
-
-如果不存在或与实际不符，基于实际文件重新生成。
-如果已经准确，直接确认。不要编造。`;
+  return `检查 ${task.projectPath}/docs/ 下的报告是否真实准确。如果不存在或不准确，基于实际文件重新生成。不要编造。`;
 }
 
 function buildMergePrompt(task, childSummary) {
   const rc = getRoleContext(task);
-  return `${rc ? rc + '\n---\n\n' : ''}## 背景
-
-你将大任务拆分为多个子任务并行执行，现在所有子任务已完成。
-
-## 子任务结果
-
-${childSummary}
-
-## 工作目录
-
-${task.projectPath}
-
-## 合并规则
-
-1. 检查所有子任务产出文件
-2. 如有冲突，以功能完整为准合并
-3. 确保合并后项目可运行
-4. 生成 docs/completed.md、docs/issues.md、docs/remaining.md
-5. 直接执行`;
+  return `${rc ? rc + '\n---\n\n' : ''}## 子任务结果\n\n${childSummary}\n\n## 合并规则\n\n1. 检查产出文件\n2. 合并冲突\n3. 生成 docs/ 报告\n4. 直接执行`;
 }
 
 // ── 迭代 ──
@@ -638,20 +874,17 @@ function handleFollowUp(data) {
   if (!task || task.status === 'running') return;
   task.followUps = task.followUps || [];
   task.followUps.push({ prompt: data.prompt, time: Date.now() });
-  task.status = 'running';
-  task.phaseName = '迭代中';
-  task.completedAt = null;
+  task.status = 'running'; task.phaseName = '迭代中'; task.completedAt = null;
   saveIndex();
   broadcast({ type: 'task_updated', data: serializeTask(task) });
 
   const history = (task.followUps || []).map((f, i) => `- 第${i + 1}次：${f.prompt}`).join('\n');
   const rc = getRoleContext(task);
-  const content = `${rc ? rc + '\n---\n\n' : ''}## 背景\n\n你之前在 ${task.projectPath} 中完成了工作。\n\n${history ? `## 追加记录\n\n${history}\n\n` : ''}## 本次需求\n\n${data.prompt}\n\n## 执行规则\n\n1. 先查看现有文件\n2. 执行新需求\n3. 不破坏已有功能\n4. 更新 docs/ 报告\n5. 直接执行`;
-
-  fs.writeFileSync(path.join(task.projectPath, 'PLAN.md'), content, 'utf-8');
+  fs.writeFileSync(path.join(task.projectPath, 'PLAN.md'),
+      `${rc ? rc + '\n---\n\n' : ''}## 背景\n\n你之前在 ${task.projectPath} 完成了工作。\n\n${history ? `## 追加记录\n\n${history}\n\n` : ''}## 本次需求\n\n${data.prompt}\n\n## 规则\n\n1. 查看现有文件\n2. 执行新需求\n3. 不破坏已有功能\n4. 更新 docs/\n5. 直接执行`, 'utf-8');
 
   runningCount++;
-  runClaude(task, '读取当前目录下的 PLAN.md，按指令执行。', 200)
+  runClaude(task, '读取 PLAN.md，按指令执行。', 200)
       .then(() => { if (task.status !== 'cancelled') { task.status = 'completed'; task.results = collectResults(task); } })
       .catch(err => { if (task.status !== 'cancelled') { task.status = 'failed'; task.error = err.message; } })
       .finally(() => {
@@ -660,21 +893,19 @@ function handleFollowUp(data) {
         runningCount--;
         saveIndex();
         broadcast({ type: 'task_updated', data: serializeTask(task) });
+        notifyBot(task);
         tryExecuteNext();
       });
 }
 
 // ═══════════════════════════════════════════════════════════
-//  任务控制 & 结果
+//  任务控制
 // ═══════════════════════════════════════════════════════════
 function cancelTask(id) {
   const task = tasks.get(id);
   if (!task || task.status === 'completed' || task.status === 'failed') return;
   task.status = 'cancelled';
-  for (const cid of (task.childIds || [])) {
-    const ct = tasks.get(cid);
-    if (ct && (ct.status === 'running' || ct.status === 'queued')) cancelTask(cid);
-  }
+  for (const cid of (task.childIds || [])) { const ct = tasks.get(cid); if (ct && (ct.status === 'running' || ct.status === 'queued')) cancelTask(cid); }
   if (task.currentProcess) { try { task.currentProcess.kill('SIGTERM'); } catch {} task.currentProcess = null; }
   task.completedAt = Date.now();
   appendLog(task, '\n⚠ 已取消\n', 'system');
@@ -698,17 +929,14 @@ function collectResults(task) {
   if (fs.existsSync(docsDir)) {
     for (const entry of fs.readdirSync(docsDir)) {
       const fp = path.join(docsDir, entry);
-      try {
-        const stat = fs.statSync(fp);
-        if (stat.isFile()) files.push({ name: entry, path: fp, size: stat.size, modified: stat.mtimeMs });
-      } catch {}
+      try { const stat = fs.statSync(fp); if (stat.isFile()) files.push({ name: entry, path: fp, size: stat.size, modified: stat.mtimeMs }); } catch {}
     }
   }
   return { files };
 }
 
 // ═══════════════════════════════════════════════════════════
-//  API & 启动
+//  API
 // ═══════════════════════════════════════════════════════════
 app.get('/api/file', (req, res) => {
   const filePath = req.query.path;
@@ -717,9 +945,14 @@ app.get('/api/file', (req, res) => {
   catch { res.status(404).json({ error: 'File not found' }); }
 });
 
+// ═══════════════════════════════════════════════════════════
+//  启动
+// ═══════════════════════════════════════════════════════════
 loadRoles();
 loadTaskTemplates();
 loadIndex();
+initFeishu();
+initDingTalk();
 
 server.listen(CONFIG.port, CONFIG.host, () => {
   const interfaces = os.networkInterfaces();
@@ -731,7 +964,7 @@ server.listen(CONFIG.port, CONFIG.host, () => {
   }
   console.log('');
   console.log('  ┌──────────────────────────────────────┐');
-  console.log('  │       CLAUDE HUB v5 · Ready          │');
+  console.log('  │       CLAUDE HUB v6 · Ready          │');
   console.log('  ├──────────────────────────────────────┤');
   console.log(`  │  Local:   http://localhost:${CONFIG.port}      │`);
   for (const ip of ips) console.log(`  │  Network: http://${ip}:${CONFIG.port} │`);
@@ -741,9 +974,7 @@ server.listen(CONFIG.port, CONFIG.host, () => {
 
 process.on('SIGINT', () => {
   console.log('\n正在关闭...');
-  for (const [, task] of tasks) {
-    if (task.currentProcess) { try { task.currentProcess.kill('SIGTERM'); } catch {} }
-  }
+  for (const [, task] of tasks) { if (task.currentProcess) { try { task.currentProcess.kill('SIGTERM'); } catch {} } }
   server.close();
   process.exit(0);
 });
