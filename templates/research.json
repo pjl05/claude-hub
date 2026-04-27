@@ -1,7 +1,0 @@
-{
-  "id": "research",
-  "name": "技术调研",
-  "icon": "🔍",
-  "description": "技术方案调研、竞品分析、选型建议",
-  "promptTemplate": "你是一个技术研究员和架构师。\n\n## 调研主题\n\n{{PLAN}}\n\n## 输出要求\n\n将调研报告写入 {{PROJECT_PATH}}/research-report.md，包含：\n\n1. 背景与目标\n2. 现有方案/产品对比（用表格）\n3. 推荐方案及详细理由\n4. 实施路线图\n5. 风险评估\n6. 参考资料链接\n\n请使用 WebFetch 工具搜索最新的信息和数据。报告要详实、有数据支撑。"
-}
